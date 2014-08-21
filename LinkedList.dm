@@ -306,6 +306,10 @@
 		return null
 	return first.object
 
+/datum/datastructures/LinkedList/proc/push(var/o)
+	addFirst(o)
+
+
 /datum/datastructures/LinkedList/proc/pop()
 	if (first==null)
 		return null
