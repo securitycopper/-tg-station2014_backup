@@ -22,9 +22,32 @@ var/list/solars_list = list()
 	var/turn_angle = 0
 	var/obj/machinery/power/solar_control/control = null
 
+
+
+
 /obj/machinery/power/solar/New(var/turf/loc, var/obj/item/solar_assembly/S)
 	..(loc)
 	Make(S)
+
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = "Solar Panel "
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
+
+
+
 	connect_to_network()
 
 /obj/machinery/power/solar/Destroy()
@@ -124,20 +147,21 @@ var/list/solars_list = list()
 	//isn't the power recieved from the incoming light proportionnal to cos(p_angle) (Lambert's cosine law) rather than cos(p_angle)^2 ?
 
 /obj/machinery/power/solar/process()//TODO: remove/add this from machines to save on processing as needed ~Carn PRIORITY
-	if(stat & BROKEN)
-		return
-	if(!sun || !control) //if there's no sun or the panel is not linked to a solar control computer, no need to proceed
+
+	if((stat & BROKEN) || obscured || !sun || !control) //get no light from the sun, so don't generate power
+		powerNode.setMaxPotentialSupply = 0
+		powerNode.setCurrentSupply = 0
+		powerNode.update()
 		return
 
-	if(powernet)
-		if(powernet == control.powernet)//check if the panel is still connected to the computer
-			if(obscured) //get no light from the sun, so don't generate power
-				return
-			var/sgen = SOLARGENRATE * sunfrac
-			add_avail(sgen)
-			control.gen += sgen
-		else //if we're no longer on the same powernet, remove from control computer
-			unset_control()
+	var/sgen = SOLARGENRATE * sunfrac
+	powerNode.setMaxPotentialSupply = sgen
+	powerNode.setCurrentSupply = sgen
+
+	powerNode.update()
+
+	if(control && powerNode.parentNetwork != control.powerNode.parentNetwork)//check if the panel is still connected to the computer
+		unset_control()
 
 /obj/machinery/power/solar/proc/broken()
 	stat |= BROKEN
@@ -322,12 +346,14 @@ var/list/solars_list = list()
 
 /obj/machinery/power/solar_control/connect_to_network()
 	var/to_return = ..()
-	if(powernet) //if connected and not already in solar_list...
+	if(powerNode.parentNetwork) //if connected and not already in solar_list...
 		solars_list |= src //... add it
 	return to_return
 
 //search for unconnected panels and trackers in the computer powernet and connect them
 /obj/machinery/power/solar_control/proc/search_for_connected()
+	return
+/* TODO Folix
 	if(powernet)
 		for(var/obj/machinery/power/M in powernet.nodes)
 			if(istype(M, /obj/machinery/power/solar))
@@ -341,7 +367,7 @@ var/list/solars_list = list()
 					if(!T.control) //i.e unconnected
 						connected_tracker = T
 						T.set_control(src)
-
+*/
 //called by the sun controller, update the facing angle (either manually or via tracking) and rotates the panels accordingly
 /obj/machinery/power/solar_control/proc/update()
 	if(stat & (NOPOWER | BROKEN))
@@ -361,7 +387,7 @@ var/list/solars_list = list()
 
 /obj/machinery/power/solar_control/initialize()
 	..()
-	if(!powernet) return
+	if(!powerNode.parentNetwork) return
 	set_panels(cdir)
 
 /obj/machinery/power/solar_control/update_icon()
@@ -451,7 +477,7 @@ var/list/solars_list = list()
 		return
 
 	if(connected_tracker) //NOTE : handled here so that we don't add trackers to the processing list
-		if(connected_tracker.powernet != powernet)
+		if(connected_tracker.powerNode.parentNetwork != powerNode.parentNetwork)
 			connected_tracker.unset_control()
 
 	if(track==1 && trackrate) //manual tracking and set a rotation speed

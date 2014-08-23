@@ -54,8 +54,7 @@
 	var/area/area
 	var/areastring = null
 	var/obj/item/weapon/stock_parts/cell/cell
-	var/start_charge = 90				// initial cell charge %
-	var/cell_type = 2500				// 0=no cell, 1=regular, 2=high-cap (x5) <- old, now it's just 0=no cell, otherwise dictate cellcapacity by changing this value. 1 used to be 1000, 2 was 2500
+
 	var/opened = 0 //0=closed, 1=opened, 2=cover removed
 	var/shorted = 0
 	var/lighting = 3
@@ -76,7 +75,10 @@
 	var/lastused_total = 0
 	var/main_status = 0
 	var/wiresexposed = 0
-	powernet = 0		// set so that APCs aren't found as powernet nodes //Hackish, Horrible, was like this before I changed it :(
+
+	var/charge=0 //PowerNode: This is kept only for map configuration support, only checked once
+	var/cell_type=0 //PowerNode: This is kept only for map configuration support, only checked once
+
 	var/malfhack = 0 //New var for my changes to AI malf. --NeoFite
 	var/mob/living/silicon/ai/malfai = null //See above --NeoFite
 //	luminosity = 1
@@ -97,6 +99,11 @@
 	var/global/list/status_overlays_lighting
 	var/global/list/status_overlays_environ
 
+
+
+
+
+
 /obj/machinery/power/apc/updateDialog()
 	if (stat & (BROKEN|MAINT))
 		return
@@ -112,6 +119,37 @@
 
 /obj/machinery/power/apc/New(turf/loc, var/ndir, var/building=0)
 	..()
+
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.calculatedBatteryStoredEnergy = 90
+
+
+
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=2500
+	powerNode.setBatteryChargeRate=0
+
+
+	if(cell_type!=0)
+		powerNode.setBatteryMaxCapacity=cell_type
+	if(charge!=0)
+		powerNode.calculatedBatteryStoredEnergy = charge
+
+
+
+
 	wires = new(src)
 	// offset 24 pixels in direction of dir
 	// this allows the APC to be embedded in a wall, yet still inside an area
@@ -149,8 +187,8 @@
 	if(occupier)
 		malfvacate(1)
 	del(wires)
-	if(cell)
-		qdel(cell)
+	//if(cell)
+	//	qdel(cell)
 	if(terminal)
 		disconnect_terminal()
 	..()
@@ -165,11 +203,11 @@
 /obj/machinery/power/apc/proc/init()
 	has_electronics = 2 //installed and secured
 	// is starting with a power cell installed, create it and set its charge level
-	if(cell_type)
+/*	if(cell_type)
 		src.cell = new/obj/item/weapon/stock_parts/cell(src)
 		cell.maxcharge = cell_type	// cell_type is maximum charge (old default was 1000 or 2500 (values one and two respectively)
 		cell.charge = start_charge * cell.maxcharge / 100.0 		// (convert percentage to actual value)
-
+*/
 	var/area/A = src.loc.loc
 
 	//if area isn't specified use current
@@ -518,7 +556,7 @@
 		user << "You begin to cut the cables..."
 		playsound(src.loc, 'sound/items/Deconstruct.ogg', 50, 1)
 		if(do_after(user, 50))
-			if (prob(50) && electrocute_mob(usr, terminal.powernet, terminal))
+			if (prob(50) && electrocute_mob(usr, terminal.powerNode.parentNetwork, terminal))
 				var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
 				s.set_up(5, 1, src)
 				s.start()
@@ -985,22 +1023,27 @@
 					M.show_message("\red The [src.name] suddenly lets out a blast of smoke and some sparks!", 3, "\red You hear sizzling electronics.", 2)
 
 
-/obj/machinery/power/apc/surplus()
+///obj/machinery/power/apc/surplus()
+
+//	return powerNode.calculatedBatteryStoredEnergy - powerNode.calculatedCurrentBatteryDistargeRate
+/*
 	if(terminal)
 		return terminal.surplus()
 	else
 		return 0
-
-/obj/machinery/power/apc/add_load(var/amount)
+*/
+///obj/machinery/power/apc/add_load(var/amount)
+//	return
+/* nativly suported
 	if(terminal && terminal.powernet)
 		terminal.powernet.load += amount
-
-/obj/machinery/power/apc/avail()
-	if(terminal)
-		return terminal.avail()
-	else
+*/
+/*/obj/machinery/power/apc/avail()
+	if(powerNode.parentNetwork ==null)
 		return 0
-
+	else
+		return powerNode.parentNetwork.wireNetworkMaxPotentialSupply-powerNode.parentNetwork.wireNetworkCurrentSupply
+*/
 /obj/machinery/power/apc/process()
 
 	if(stat & (BROKEN|MAINT))
@@ -1008,6 +1051,8 @@
 	if(!area.requires_power)
 		return
 
+//TODO Folix: update graphics. all this logic is native support for child network except for itemized power usage based on type
+	/*
 
 	/*
 	if (equipment > 1) // off=0, off auto=1, on=2, on auto=3
@@ -1027,6 +1072,8 @@
 	area.clear_usage()
 
 	lastused_total = lastused_light + lastused_equip + lastused_environ
+
+
 
 	//store states to update icon if any change
 	var/last_lt = lighting
@@ -1158,6 +1205,7 @@
 	else if (last_ch != charging)
 		queue_icon_update()
 
+*/
 // val 0=off, 1=off(auto) 2=on 3=on(auto)
 // on 0=off, 1=on, 2=autooff
 

@@ -24,6 +24,21 @@
 
 
 /obj/machinery/power/generator/initialize()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
 
 	circ1 = null
 	circ2 = null
@@ -67,7 +82,7 @@
 
 	lastgen = 0
 
-	if(powernet)
+	if(powerNode.parentNetwork)
 		//world << "circ1 and circ2 pass"
 
 		var/datum/gas_mixture/cold_air = circ1.return_transfer_air()
@@ -102,7 +117,9 @@
 
 				//world << "POWER: [lastgen] W generated at [efficiency*100]% efficiency and sinks sizes [cold_air_heat_capacity], [hot_air_heat_capacity]"
 
-				add_avail(lastgen)
+				powerNode.setMaxPotentialSupply=lastgen
+				powerNode.setCurrentSupply=lastgen
+				powerNode.update()
 		// update icon overlays only if displayed level has changed
 
 		if(hot_air)
@@ -128,7 +145,7 @@
 
 /obj/machinery/power/generator/proc/get_menu(var/include_link = 1)
 	var/t = ""
-	if(!powernet)
+	if(powerNode.parentNetwork !=null)
 		t += "<span class='bad'>Unable to connect to the power network!</span>"
 	else if(circ1 && circ2)
 

@@ -110,6 +110,8 @@ Class Procs:
 	var/unsecuring_tool = /obj/item/weapon/wrench
 	var/interact_offline = 0 // Can the machine be interacted with while de-powered.
 
+	var/datum/power/PowerNode/powerNode=null
+
 /obj/machinery/New()
 	..()
 	machines += src

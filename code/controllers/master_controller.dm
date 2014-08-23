@@ -184,7 +184,16 @@ var/global/pipe_processing_killed = 0
 
 				//POWERNETS
 				timer = world.timeofday
-				process_powernets()
+				//Simulate an iteration
+				for(var/datum/power/PowerNode/powerNodeWithBattery in powerNetworkControllerPowerNodeOnBatteryProcessingLoopList)
+					powerNodeWithBattery.prcessBattery()
+
+				for(var/datum/wire_network/wireNetwork in powerNetworkControllerProcessingLoopList)
+					wireNetwork.process()
+					#if defined(DEBUG_WIRENETWORK_PRINT_TREE)
+					//wireNetwork.debugDebugNetwork()
+					#endif
+				//process_powernets()
 				powernets_cost = (world.timeofday - timer) / 10
 
 				sleep(breather_ticks)
@@ -293,16 +302,7 @@ var/global/pipe_processing_killed = 0
 			continue
 		pipe_networks.Cut(i,i+1)
 
-/datum/controller/game_controller/proc/process_powernets()
-	last_thing_processed = /datum/powernet
-	var/i = 1
-	while(i<=powernets.len)
-		var/datum/powernet/Powernet = powernets[i]
-		if(Powernet)
-			Powernet.reset()
-			i++
-			continue
-		powernets.Cut(i,i+1)
+
 
 /datum/controller/game_controller/proc/process_nano()
 	var/i = 1

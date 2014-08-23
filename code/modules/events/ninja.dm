@@ -2318,20 +2318,20 @@ ________________________________________________________________________________
 
 		if("SMES")
 			var/obj/machinery/power/smes/A = target
-			if(A.charge)
+			if(A.powerNode.calculatedBatteryStoredEnergy)
 				var/datum/effect/effect/system/spark_spread/spark_system = new /datum/effect/effect/system/spark_spread()
 				spark_system.set_up(5, 0, A.loc)
-				while(G.candrain&&A.charge>0&&!maxcapacity)
+				while(G.candrain&&A.powerNode.calculatedBatteryStoredEnergy>0&&!maxcapacity)
 					drain = rand(G.mindrain,G.maxdrain)
-					if(A.charge<drain)
-						drain = A.charge
+					if(A.powerNode.calculatedBatteryStoredEnergy<drain)
+						drain = A.powerNode.calculatedBatteryStoredEnergy
 					if(S.cell.charge+drain>S.cell.maxcharge)
 						drain = S.cell.maxcharge-S.cell.charge
 						maxcapacity = 1
 					if (do_after(U,10))
 						spark_system.start()
 						playsound(A.loc, "sparks", 50, 1)
-						A.charge-=drain
+						A.powerNode.calculatedBatteryStoredEnergy-=drain
 						S.cell.charge+=drain
 						totaldrain+=drain
 					else	break
@@ -2358,6 +2358,9 @@ ________________________________________________________________________________
 				U << "\red This cell is empty and of no use."
 
 		if("MACHINERY")//Can be applied to generically to all powered machinery. I'm leaving this alone for now.
+
+			//TODO Folix: this logic
+			/*
 			var/obj/machinery/A = target
 			if(A.powered())//If powered.
 
@@ -2395,7 +2398,7 @@ ________________________________________________________________________________
 					U << "\red Power network could not be found. Aborting."
 			else
 				U << "\red This recharger is not providing energy. You must find another source."
-
+			*/
 		if("RESEARCH")
 			var/obj/machinery/A = target
 			U << "\blue Hacking \the [A]..."
@@ -2417,6 +2420,9 @@ ________________________________________________________________________________
 			U << "\blue Data analyzed. Process finished."
 
 		if("WIRE")
+			//TODO FOLIX: temp drain logic needed
+			U << "\red The power network redesign doesn't support leaching power from wires yet"
+			/*
 			var/obj/structure/cable/A = target
 			var/datum/powernet/PN = A.powernet
 			while(G.candrain&&!maxcapacity&&!isnull(A))
@@ -2443,7 +2449,7 @@ ________________________________________________________________________________
 				S.spark_system.start()
 				if(drained==0)	break
 			U << "\blue Gained <B>[totaldrain]</B> energy from the power network."
-
+			*/
 		if("MECHA")
 			var/obj/mecha/A = target
 			A.occupant_message("\red Warning: Unauthorized access through sub-route 4, block H, detected.")

@@ -31,6 +31,25 @@
 
 /obj/machinery/power/am_control_unit/New()
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.calculatedBatteryStoredEnergy = 0
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
+
+
 	linked_shielding = list()
 	linked_cores = list()
 
@@ -50,7 +69,7 @@
 		check_shield_icons()
 		update_shield_icons = 0
 
-	if(stat & (NOPOWER|BROKEN) || !active)//can update the icons even without power
+	if(stat & (BROKEN) || !powerNode.isOn || !active)//can update the icons even without power
 		return
 
 	if(!fueljar)//No fuel but we are on, shutdown
@@ -58,7 +77,9 @@
 		//Angry buzz or such here
 		return
 
-	add_avail(stored_power)
+	powerNode.setMaxPotentialSupply = stored_power
+	powerNode.setCurrentSupply = stored_power
+	powerNode.update()
 
 	power_cycle++
 	if(power_cycle >= power_cycle_delay)

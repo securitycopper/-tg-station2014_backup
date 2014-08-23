@@ -11,6 +11,24 @@
 		var/health = max_health //The shield can only take so much beating (prevents perma-prisons)
 
 /obj/machinery/shield/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 10
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=1
+	powerNode.setBatteryMaxCapacity=500
+	powerNode.setBatteryChargeRate=10
+
+
+
 	src.dir = pick(1,2,3,4)
 	..()
 	air_update_turf(1)
@@ -315,7 +333,7 @@
 		var/destroyed = 0
 //		var/maxshieldload = 200
 		var/obj/structure/cable/attached		// the attached cable
-		var/storedpower = 0
+		//var/storedpower = 0
 		flags = CONDUCT
 		use_power = 0
 
@@ -323,26 +341,14 @@
 	if(!anchored)
 		power = 0
 		return 0
-	var/turf/T = src.loc
+//	var/turf/T = src.loc
 
-	var/obj/structure/cable/C = T.get_cable_node()
-	var/datum/powernet/PN
-	if(C)	PN = C.powernet		// find the powernet of the connected cable
 
-	if(!PN)
-		power = 0
-		return 0
+	if(powerNode.isOn == 1)
+		//powerNode.setCurrentLoad = shieldload
+		powerNode.setBatteryChargeRate = 20
+		powerNode.update()
 
-	var/surplus = max(PN.avail-PN.load, 0)
-	var/shieldload = min(rand(50,200), surplus)
-	if(shieldload==0 && !storedpower)		// no cable or no power, and no power stored
-		power = 0
-		return 0
-	else
-		power = 1	// IVE GOT THE POWER!
-		if(PN) //runtime errors fixer. They were caused by PN.newload trying to access missing network in case of working on stored power.
-			storedpower += shieldload
-			PN.load += shieldload //uses powernet power.
 //		message_admins("[PN.load]", 1)
 //		use_power(250) //uses APC power
 
@@ -377,11 +383,11 @@
 	spawn(100)
 		power()
 		if(power)
-			storedpower -= 50 //this way it can survive longer and survive at all
-	if(storedpower >= maxstoredpower)
-		storedpower = maxstoredpower
-	if(storedpower <= 0)
-		storedpower = 0
+			powerNode.calculatedBatteryStoredEnergy  -= 50 //this way it can survive longer and survive at all
+	if(powerNode.calculatedBatteryStoredEnergy >= maxstoredpower)
+		powerNode.calculatedBatteryStoredEnergy = maxstoredpower
+	if(powerNode.calculatedBatteryStoredEnergy <= 0)
+		powerNode.calculatedBatteryStoredEnergy = 0
 //	if(shieldload >= maxshieldload) //there was a loop caused by specifics of process(), so this was needed.
 //		shieldload = maxshieldload
 
@@ -513,7 +519,7 @@
 	..()
 
 /obj/machinery/shieldwallgen/bullet_act(var/obj/item/projectile/Proj)
-	storedpower -= Proj.damage
+	powerNode.calculatedBatteryStoredEnergy -= Proj.damage
 	..()
 	return
 
@@ -549,6 +555,8 @@
 
 
 /obj/machinery/shieldwall/process()
+
+/*
 	if(needs_power)
 		if(isnull(gen_primary)||isnull(gen_secondary))
 			qdel(src)
@@ -563,6 +571,8 @@
 		else
 			gen_secondary.storedpower -=10
 
+*/
+
 
 /obj/machinery/shieldwall/bullet_act(var/obj/item/projectile/Proj)
 	if(needs_power)
@@ -571,7 +581,7 @@
 			G = gen_primary
 		else
 			G = gen_secondary
-		G.storedpower -= Proj.damage
+		G.powerNode.calculatedBatteryStoredEnergy  -= Proj.damage
 	..()
 	return
 
@@ -585,21 +595,21 @@
 					G = gen_primary
 				else
 					G = gen_secondary
-				G.storedpower -= 200
+				G.powerNode.calculatedBatteryStoredEnergy -= 200
 
 			if(2.0) //medium boom
 				if(prob(50))
 					G = gen_primary
 				else
 					G = gen_secondary
-				G.storedpower -= 50
+				G.powerNode.calculatedBatteryStoredEnergy -= 50
 
 			if(3.0) //lil boom
 				if(prob(50))
 					G = gen_primary
 				else
 					G = gen_secondary
-				G.storedpower -= 20
+				G.powerNode.calculatedBatteryStoredEnergy -= 20
 	return
 
 

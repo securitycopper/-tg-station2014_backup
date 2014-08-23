@@ -20,6 +20,24 @@ var/global/list/rad_collectors = list()
 	..()
 	rad_collectors += src
 
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = "Singularity Collector"
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
+
+
+
 /obj/machinery/power/rad_collector/Destroy()
 	rad_collectors -= src
 	..()
@@ -119,7 +137,7 @@ var/global/list/rad_collectors = list()
 	Z.loc = get_turf(src)
 	Z.layer = initial(Z.layer)
 	src.P = null
-	if(active)
+	if(powerNode.isOn)
 		toggle_power()
 	else
 		update_icons()
@@ -128,7 +146,11 @@ var/global/list/rad_collectors = list()
 	if(P && active)
 		var/power_produced = 0
 		power_produced = P.air_contents.toxins*pulse_strength*20
-		add_avail(power_produced)
+
+		powerNode.setMaxPotentialSupply = power_produced
+		powerNode.setCurrentSupply = power_produced
+		powerNode.update()
+
 		last_power = power_produced
 		return
 	return
@@ -146,7 +168,7 @@ var/global/list/rad_collectors = list()
 
 /obj/machinery/power/rad_collector/proc/toggle_power()
 	active = !active
-	if(active)
+	if(powerNode.isOn)
 		icon_state = "ca_on"
 		flick("ca_active", src)
 	else

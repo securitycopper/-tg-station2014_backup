@@ -371,18 +371,20 @@
 	NC.d2 = fdirn
 	NC.updateicon()
 
-	var/datum/powernet/PN
+	var/datum/wire_network/wireNetwork
 	if(last_piece && last_piece.d2 != chassis.dir)
 		last_piece.d1 = min(last_piece.d2, chassis.dir)
 		last_piece.d2 = max(last_piece.d2, chassis.dir)
 		last_piece.updateicon()
-		PN = last_piece.powernet
+		//last_piece is a cable
+		wireNetwork = last_piece.parentNetwork
 
-	if(!PN)
-		PN = new()
-		powernets += PN
-	NC.powernet = PN
-	PN.cables += NC
+//TODO Folix: check logic
+	//if(wireNetwork == null)
+	//	PN = new()
+	//	powernets += PN
+	NC.parentNetwork = wireNetwork
+	//PN.cables += NC
 	NC.mergeConnectedNetworks(NC.d2)
 
 	//NC.mergeConnectedNetworksOnTurf()

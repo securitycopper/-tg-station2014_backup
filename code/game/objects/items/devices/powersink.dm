@@ -13,7 +13,7 @@
 	m_amt = 750
 	origin_tech = "powerstorage=3;syndicate=5"
 	var/drain_rate = 600000		// amount of power to drain per tick
-	var/power_drained = 0 		// has drained this much power
+	//var/power_drained = 0 		// has drained this much power
 	var/max_power = 1e8		// maximum power that can be drained before exploding
 	var/mode = 0		// 0 = off, 1=clamped (off), 2=operating
 	var/admins_warned = 0 // stop spam, only warn the admins once that we are about to boom
@@ -23,6 +23,28 @@
 	var/const/OPERATING = 2
 
 	var/obj/structure/cable/attached		// the attached cable
+
+//TODO Folix: Add logic to attach to network
+
+	var/datum/power/PowerNode/powerNode
+
+/obj/item/device/powersink/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=1
+	powerNode.setBatteryMaxCapacity=max_power
+	powerNode.setBatteryChargeRate=0
+
 
 /obj/item/device/powersink/update_icon()
 	icon_state = "powersink[mode == OPERATING]"
@@ -107,39 +129,32 @@
 			set_mode(CLAMPED_OFF)
 
 /obj/item/device/powersink/process()
-	if(!attached)
+	if(!attached || powerNode.isOn == 0)
 		set_mode(DISCONNECTED)
 		return
 
-	var/datum/powernet/PN = attached.powernet
+	var/datum/wire_network/PN = powerNode.parentNetwork
 	if(PN)
 		SetLuminosity(5)
 
 		// found a powernet, so drain up to max power from it
 
-		var/drained = min ( drain_rate, PN.avail )
-		PN.load += drained
-		power_drained += drained
+		var/drained = min ( drain_rate, PN.wireNetworkMaxPotentialSupply )
 
-		// if tried to drain more than available on powernet
-		// now look for APCs and drain their cells
-		if(drained < drain_rate)
-			for(var/obj/machinery/power/terminal/T in PN.nodes)
-				if(istype(T.master, /obj/machinery/power/apc))
-					var/obj/machinery/power/apc/A = T.master
-					if(A.operating && A.cell)
-						A.cell.charge = max(0, A.cell.charge - 50)
-						power_drained += 50
-						if(A.charging == 2) // If the cell was full
-							A.charging = 1 // It's no longer full
+		powerNode.setCurrentLoad = drained;
+		powerNode.setBatteryChargeRate = drained
+		powerNode.update()
 
-	if(power_drained > max_power * 0.95)
+
+
+
+	if(powerNode.calculatedBatteryStoredEnergy > max_power * 0.95)
 		if (!admins_warned)
 			admins_warned = 1
 			message_admins("Power sink at ([x],[y],[z] - <A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[x];Y=[y];Z=[z]'>JMP</a>) is 95% full. Explosion imminent.")
 		playsound(src, 'sound/effects/screech.ogg', 100, 1, 1)
 
-	if(power_drained >= max_power)
+	if(powerNode.calculatedBatteryStoredEnergy >= max_power)
 		processing_objects.Remove(src)
 		explosion(src.loc, 3,6,9,12)
 		qdel(src)

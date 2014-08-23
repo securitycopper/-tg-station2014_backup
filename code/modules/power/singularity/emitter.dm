@@ -9,9 +9,8 @@
 	density = 1
 	req_access = list(access_engine_equip)
 
-	use_power = 0
-	idle_power_usage = 10
-	active_power_usage = 300
+
+	var/activePower = 300 //constant
 
 	var/active = 0
 	var/powered = 0
@@ -20,6 +19,24 @@
 	var/shot_number = 0
 	var/state = 0
 	var/locked = 0
+
+	var/wasOnAtLastCheck = 0;
+/obj/machinery/power/emitter/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = "Singularity Emitter"
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = 10
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
 
 
 /obj/machinery/power/emitter/verb/rotate()
@@ -46,7 +63,7 @@
 	..()
 
 /obj/machinery/power/emitter/update_icon()
-	if (active && powernet && avail(active_power_usage))
+	if(powerNode.isOn)
 		icon_state = "emitter_+a"
 	else
 		icon_state = "emitter"
@@ -55,7 +72,7 @@
 /obj/machinery/power/emitter/attack_hand(mob/user as mob)
 	src.add_fingerprint(user)
 	if(state == 2)
-		if(!powernet)
+		if(powerNode.parentNetwork == null)
 			user << "The emitter isn't connected to a wire."
 			return 1
 		if(!src.locked)
@@ -91,25 +108,26 @@
 /obj/machinery/power/emitter/process()
 	if(stat & (BROKEN))
 		return
-	if(src.state != 2 || (!powernet && active_power_usage))
+	if(src.state != 2 || (powerNode.parentNetwork!=null && active_power_usage))
 		src.active = 0
 		update_icon()
 		return
 	if(((src.last_shot + src.fire_delay) <= world.time) && (src.active == 1))
+		if(wasOnAtLastCheck==0 && powerNode.isOn)
+			wasOnAtLastCheck=1
+			powerNode.setCurrentLoad = activePower;
+			powerNode.update()
+			update_icon()
+			investigate_log("regained power and turned <font color='green'>on</font>","singulo")
 
-		if(!active_power_usage || avail(active_power_usage))
-			add_load(active_power_usage)
-			if(!powered)
-				powered = 1
-				update_icon()
-				investigate_log("regained power and turned <font color='green'>on</font>","singulo")
-		else
-			if(powered)
-				powered = 0
-				update_icon()
-				investigate_log("lost power and turned <font color='red'>off</font>","singulo")
-				log_game("Emitter lost power in ([x],[y],[z])")
-				message_admins("Emitter lost power in ([x],[y],[z] - <a href='?_src_=holder;adminplayerobservecoodjump=1;X=[x];Y=[y];Z=[z]'>JMP</a>)",0,1)
+		if(wasOnAtLastCheck==1 && powerNode.isOn == 0)
+			wasOnAtLastCheck=0
+			//powerNode.setCurrentLoad will be 0 already because its off
+
+			update_icon()
+			investigate_log("lost power and turned <font color='red'>off</font>","singulo")
+			log_game("Emitter lost power in ([x],[y],[z])")
+			message_admins("Emitter lost power in ([x],[y],[z] - <a href='?_src_=holder;adminplayerobservecoodjump=1;X=[x];Y=[y];Z=[z]'>JMP</a>)",0,1)
 			return
 
 		src.last_shot = world.time

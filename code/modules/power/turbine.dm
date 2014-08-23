@@ -68,6 +68,22 @@
 
 /obj/machinery/power/compressor/New()
 	..()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
+
 	component_parts = list()
 	component_parts += new /obj/item/weapon/circuitboard/power_compressor(null)
 	component_parts += new /obj/item/weapon/stock_parts/manipulator(null)
@@ -237,7 +253,11 @@
 
 	lastgen = ((compressor.rpm / TURBGENQ)**TURBGENG) * TURBGENQ * productivity
 
-	add_avail(lastgen)
+
+	powerNode.setMaxPotentialSupply=lastgen
+	powerNode.setCurrentSupply=lastgen
+	powerNode.update()
+
 
 	// Weird function but it works. Should be something else...
 

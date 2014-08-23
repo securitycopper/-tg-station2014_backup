@@ -1107,10 +1107,11 @@ var/global/list/g_fancy_list_of_safe_types = null
 			if(!Rad.active)
 				Rad.toggle_power()
 
-	for(var/obj/machinery/power/smes/SMES in world)
+	//SMES autostart so no issue
+/*	for(var/obj/machinery/power/smes/SMES in world)
 		if(SMES.anchored)
 			SMES.input_attempt = 1
-
+*/
 /client/proc/cmd_debug_mob_lists()
 	set category = "Debug"
 	set name = "Debug Mob Lists"

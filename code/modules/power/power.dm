@@ -10,7 +10,7 @@
 	name = null
 	icon = 'icons/obj/power.dmi'
 	anchored = 1.0
-	var/datum/powernet/powernet = null
+	//var/datum/powernet/powernet = null
 	use_power = 0
 	idle_power_usage = 0
 	active_power_usage = 0
@@ -23,26 +23,7 @@
 // General procedures
 //////////////////////////////
 
-// common helper procs for all power machines
-/obj/machinery/power/proc/add_avail(var/amount)
-	if(powernet)
-		powernet.newavail += amount
 
-/obj/machinery/power/proc/add_load(var/amount)
-	if(powernet)
-		powernet.load += amount
-
-/obj/machinery/power/proc/surplus()
-	if(powernet)
-		return powernet.avail-powernet.load
-	else
-		return 0
-
-/obj/machinery/power/proc/avail()
-	if(powernet)
-		return powernet.avail
-	else
-		return 0
 
 /obj/machinery/power/proc/disconnect_terminal() // machines without a terminal will just return, no harm no fowl.
 	return
@@ -98,18 +79,18 @@
 	if(!T || !istype(T))
 		return 0
 
-	var/obj/structure/cable/C = T.get_cable_node() //check if we have a node cable on the machine turf, the first found is picked
-	if(!C || !C.powernet)
+	var/obj/structure/cable/cableOnTurf = T.get_cable_node() //check if we have a node cable on the machine turf, the first found is picked
+	if(cableOnTurf==null || cableOnTurf.parentNetwork==null)
 		return 0
 
-	C.powernet.add_machine(src)
+	cableOnTurf.parentNetwork.add(src)
 	return 1
 
 // remove and disconnect the machine from its current powernet
 /obj/machinery/power/proc/disconnect_from_network()
-	if(!powernet)
+	if(powerNode.parentNetwork==null)
 		return 0
-	powernet.remove_machine(src)
+	powerNode.parentNetwork.remove(powerNode)
 	return 1
 
 // attach a wire to a power machine - leads from the turf you are standing on
@@ -152,7 +133,8 @@
 		cdir = get_dir(T,loc)
 
 		for(var/obj/structure/cable/C in T)
-			if(C.powernet)	continue
+			if(C.parentNetwork !=null)
+				continue
 			if(C.d1 == cdir || C.d2 == cdir)
 				. += C
 	return .
@@ -179,7 +161,8 @@
 /obj/machinery/power/proc/get_indirect_connections()
 	. = list()
 	for(var/obj/structure/cable/C in loc)
-		if(C.powernet)	continue
+		if(C.parentNetwork !=null)
+			continue
 		if(C.d1 == 0) // the cable is a node cable
 			. += C
 	return .
@@ -201,16 +184,16 @@
 
 		if(!cable_only && istype(AM,/obj/machinery/power))
 			var/obj/machinery/power/P = AM
-			if(P.powernet == 0)	continue		// exclude APCs which have powernet=0
 
-			if(!unmarked || !P.powernet)		//if unmarked=1 we only return things with no powernet
+
+			if(!unmarked || !P.powerNode.parentNetwork)		//if unmarked=1 we only return things with no powernet
 				if(d == 0)
 					. += P
 
 		else if(istype(AM,/obj/structure/cable))
 			var/obj/structure/cable/C = AM
 
-			if(!unmarked || !C.powernet)
+			if(!unmarked || C.parentNetwork !=null)
 				if(C.d1 == d || C.d2 == d)
 					. += C
 	return .
@@ -218,51 +201,77 @@
 
 // rebuild all power networks from scratch - only called at world creation or by the admin verb
 /proc/makepowernets()
-	for(var/datum/powernet/PN in powernets)
-		del(PN)
-	powernets.Cut()
 
-	for(var/obj/structure/cable/PC in cable_list)
-		if(!PC.powernet)
-			var/datum/powernet/NewPN = new()
-			NewPN.add_cable(PC)
-			propagate_network(PC,PC.powernet)
+	for(var/obj/structure/cable/currentCableNode in cable_list)
+		if(currentCableNode.parentNetwork == null)
+			var/datum/wire_network/newWireNetwork = new /datum/wire_network
+			propagate_network(currentCableNode,newWireNetwork,null)
+
 
 //remove the old powernet and replace it with a new one throughout the network.
-/proc/propagate_network(var/obj/O, var/datum/powernet/PN)
+/*
+	Propagate network along wires
+
+
+*/
+/proc/propagate_network(var/obj/structure/cable/powerNodeSpaceWithoutNetowrk
+, var/datum/wire_network/toPropagate, var/datum/wire_network/toReplace)
 	//world.log << "propagating new network"
-	var/list/worklist = list()
-	var/list/found_machines = list()
-	var/index = 1
-	var/obj/P = null
 
-	worklist+=O //start propagating from the passed object
 
-	while(index<=worklist.len) //until we've exhausted all power objects
-		P = worklist[index] //get the next power object found
-		index++
+	//This contains a list of objects that have a parentNode var
+	var/list/toProcessCable = list()
 
-		if( istype(P,/obj/structure/cable))
-			var/obj/structure/cable/C = P
-			if(C.powernet != PN) //add it to the powernet, if it isn't already there
-				PN.add_cable(C)
-			worklist |= C.get_connections() //get adjacents power objects, with or without a powernet
+	toProcessCable+=toPropagate;
 
-		else if(P.anchored && istype(P,/obj/machinery/power))
-			var/obj/machinery/power/M = P
-			found_machines |= M //we wait until the powernet is fully propagates to connect the machines
+	//Propagate along wires
+	while(toProcessCable.len >0)
+		//Pop first element
+		var/obj/structure/cable/currentNode = toProcessCable.Cut(1,2)
 
-		else
-			continue
+		if(currentNode.parentNetwork==toReplace)
+			currentNode.parentNetwork = toPropagate
 
-	//now that the powernet is set, connect found machines to it
-	for(var/obj/machinery/power/PM in found_machines)
-		if(!PM.connect_to_network()) //couldn't find a node on its turf...
-			PM.disconnect_from_network() //... so disconnect if already on a powernet
+			//This gets adjacent dables and adds them to the queue
+			var/cdir
+			var/turf/T
+			for(var/card in cardinal)
+				T = get_step(currentNode.loc,card)
+				cdir = get_dir(T,currentNode.loc)
+				for(var/obj/structure/cable/C in T)
+					if(C.d1 == cdir || C.d2 == cdir)
+						toProcessCable+= C
+
+			//Attach any machines if found on this space
+			for(var/obj/machinery/machine in src)
+				var/datum/power/PowerNode/machinepowerNode = machine.powerNode
+				if(machinepowerNode!=null && machine.anchored && machinepowerNode.parentNetwork == toReplace)
+					//remove machine from existing network and add to new one
+					var/datum/wire_network/machineparentNetwork = machinepowerNode.parentNetwork
+					if(machineparentNetwork!=null)
+					 	//The machine is currently atached to a network, remove it
+						machineparentNetwork.remove(machinepowerNode)
+
+					//now add machine to new network if one exists. it should, but to suppor the off case where one
+					// would want to propagate null for what ever reason. I'll put a check in.
+					if(toPropagate!=null)
+						machinepowerNode.parentNetwork = toPropagate
+						world << "power connecting machine [machinepowerNode.setName]"
+						toPropagate.add(machinepowerNode)
+
+
 
 
 //Merge two powernets, the bigger (in cable length term) absorbing the other
 /proc/merge_powernets(var/datum/powernet/net1, var/datum/powernet/net2)
+	/*
+
+	TODO Folix: Write merge logic
+	*/
+
+	return
+
+	/*
 	if(!net1 || !net2) //if one of the powernet doesn't exist, return
 		return
 
@@ -284,13 +293,16 @@
 			Node.disconnect_from_network() //if somehow we can't connect the machine to the new powernet, disconnect it from the old nonetheless
 
 	return net1
-
+*/
 //Determines how strong could be shock, deals damage to mob, uses power.
 //M is a mob who touched wire/whatever
 //power_source is a source of electricity, can be powercell, area, apc, cable, powernet or null
 //source is an object caused electrocuting (airlock, grille, etc)
 //No animations will be performed by this proc.
 /proc/electrocute_mob(mob/living/carbon/M as mob, var/power_source, var/obj/source, var/siemens_coeff = 1.0)
+/* TODO FOLIX: this logic
+
+
 	if(istype(M.loc,/obj/mecha))	return 0	//feckin mechs are dumb
 	if(istype(M,/mob/living/carbon/human))
 		var/mob/living/carbon/human/H = M
@@ -349,7 +361,7 @@
 	else if (istype(power_source, /obj/item/weapon/stock_parts/cell))
 		cell.use(drained_energy)
 	return drained_energy
-
+*/
 ////////////////////////////////////////////
 // POWERNET DATUM PROCS
 // each contiguous network of cables & nodes
@@ -360,7 +372,7 @@
 
 /datum/powernet/Destroy()
 	powernets -= src
-
+/*
 /datum/powernet/proc/is_empty()
 	return !cables.len && !nodes.len
 
@@ -369,19 +381,20 @@
 //Warning : this proc DON'T check if the cable exists
 /datum/powernet/proc/remove_cable(var/obj/structure/cable/C)
 	cables -= C
-	C.powernet = null
+	C.parentNetwork = null
 	if(is_empty())//the powernet is now empty...
 		qdel(src)///... delete it
+
 
 //add a cable to the current powernet
 //Warning : this proc DON'T check if the cable exists
 /datum/powernet/proc/add_cable(var/obj/structure/cable/C)
-	if(C.powernet)// if C already has a powernet...
-		if(C.powernet == src)
+	if(C.parentNetwork != null)// if C already has a powernet...
+		if(C.parentNetwork == src.parentNetwork)
 			return
 		else
-			C.powernet.remove_cable(C) //..remove it
-	C.powernet = src
+			C.parentNetwork = null //..remove it
+	C.parentNetwork = src.powerNode.parentNetwork
 	cables +=C
 
 //remove a power machine from the current powernet
@@ -396,13 +409,13 @@
 
 //add a power machine to the current powernet
 //Warning : this proc DON'T check if the machine exists
-/datum/powernet/proc/add_machine(var/obj/machinery/power/M)
-	if(M.powernet)// if M already has a powernet...
-		if(M.powernet == src)
+/datum/powernet/proc/add_machine(var/datum/power/PowerNode/M)
+	if(M.parentNetwork)// if M already has a powernet...
+		if(M.parentNetwork == powerNode.ParentNetwork)
 			return
 		else
 			M.disconnect_from_network()//..remove it
-	M.powernet = src
+	powerNode.parentNetwork.add(M)
 	nodes[M] = M
 
 //handles the power changes in the powernet
@@ -455,7 +468,7 @@
 			return min(rand(10,20),rand(10,20))
 		else
 			return 0
-
+*/
 ////////////////////////////////////////////////
 // Misc.
 ///////////////////////////////////////////////

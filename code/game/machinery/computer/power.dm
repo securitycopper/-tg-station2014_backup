@@ -7,40 +7,64 @@
 	icon_state = "power"
 	density = 1
 	anchored = 1
-	use_power = 2
-	idle_power_usage = 20
+
+
 	active_power_usage = 80
 	circuit = /obj/item/weapon/circuitboard/powermonitor
-	var/datum/powernet/powernet = null
+
 
 //fix for issue 521, by QualityVan.
 //someone should really look into why circuits have a powernet var, it's several kinds of retarded.
 /obj/machinery/computer/monitor/New()
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = active_power_usage
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
+
+
+
 	var/obj/structure/cable/attached = null
 	var/turf/T = loc
 	if(isturf(T))
 		attached = locate() in T
-	if(attached)
-		powernet = attached.get_powernet()
-
+	//if(attached)
+	//TODO FOLIX: add attach logic
+		//powerNode.parentNetwork = attached.powerNode.parentNetwork
+		//attached.powerNode.parentNetwork.add(powerNode)
+/*
 /obj/machinery/computer/monitor/process() //oh shit, somehow we didnt end up with a powernet... lets look for one.
-	if(!powernet)
+	if(powerNode.parentNetwork != null)
 		var/obj/structure/cable/attached = null
 		var/turf/T = loc
 		if(isturf(T))
 			attached = locate() in T
 		if(attached)
-			powernet = attached.get_powernet()
+		//TODO Folix
+			//powernet = attached.get_powernet()
 	return
-
+*/
+/*
 /obj/machinery/computer/monitor/attack_hand(mob/user)
 	if(..())
 		return
 	interact(user)
+*/
 
 /obj/machinery/computer/monitor/interact(mob/user)
-	if ( (get_dist(src, user) > 1 ) || (stat & (BROKEN|NOPOWER)) )
+	if ((get_dist(src, user) > 1 ) || (stat & (BROKEN|NOPOWER)) )
 		if (!istype(user, /mob/living/silicon))
 			user.unset_machine()
 			user << browse(null, "window=powcomp")
@@ -52,17 +76,19 @@
 
 	t += "<A href='?src=\ref[src];update=1'>Refresh</A> <A href='?src=\ref[src];close=1'>Close</A><br /><br />"
 
-	if(!powernet)
+	if(powerNode.parentNetwork ==null)
 		t += "\red No connection"
 	else
 
 		var/list/L = list()
+		//TODO FOlix: this logic
+		/*
 		for(var/obj/machinery/power/terminal/term in powernet.nodes)
 			if(istype(term.master, /obj/machinery/power/apc))
 				var/obj/machinery/power/apc/A = term.master
 				L += A
-
-		t += "<PRE>Total power: [powernet.avail] W<BR>Total load:  [num2text(powernet.viewload,10)] W<BR>"
+		*/
+		t += "<PRE>Total power: [powerNode.parentNetwork.wireNetworkMaxPotentialSupply-powerNode.parentNetwork.wireNetworkLoad] W<BR>Total load:  [num2text(powerNode.parentNetwork.wireNetworkLoad,10)] W<BR>"
 
 		t += "<FONT SIZE=-1>"
 

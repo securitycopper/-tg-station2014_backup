@@ -218,10 +218,10 @@
 /obj/machinery/singularity_beacon/proc/checkWirePower()
 	if(!attached)
 		return 0
-	var/datum/powernet/PN = attached.get_powernet()
-	if(!PN)
+	var/datum/wire_network/wireNetwork = attached.parentNetwork
+	if(wireNetwork ==null)
 		return 0
-	if(PN.avail < 1500)
+	if(wireNetwork.wireNetworkMaxPotentialSupply -  wireNetwork.wireNetworkLoad< 1500)
 		return 0
 	return 1
 

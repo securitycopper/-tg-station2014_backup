@@ -48,7 +48,7 @@
 
 	//now tell the solar control computers to update their status and linked devices
 	for(var/obj/machinery/power/solar_control/SC in solars_list)
-		if(!SC.powernet)
+		if(SC.powerNode.parentNetwork == null)
 			solars_list.Remove(SC)
 			continue
 		SC.update()

@@ -25,7 +25,7 @@ By design, d1 is the smallest direction and d2 is the highest
 /obj/structure/cable
 	level = 1 //is underfloor
 	anchored =1
-	var/datum/powernet/powernet
+	var/datum/wire_network/parentNetwork
 	name = "power cable"
 	desc = "A flexible superconducting cable for heavy-duty power transfer"
 	icon = 'icons/obj/power_cond/power_cond_red.dmi'
@@ -83,7 +83,7 @@ By design, d1 is the smallest direction and d2 is the highest
 
 
 /obj/structure/cable/Destroy()					// called when a cable is deleted
-	if(powernet)
+	if(parentNetwork!=null)
 		cut_cable_from_powernet()				// update the powernets
 	cable_list -= src							//remove it from global cable list
 	..()										// then go ahead and delete the cable
@@ -106,9 +106,6 @@ By design, d1 is the smallest direction and d2 is the highest
 		icon_state = "[d1]-[d2]"
 
 
-// returns the powernet this cable belongs to
-/obj/structure/cable/proc/get_powernet()			//TODO: remove this as it is obsolete
-	return powernet
 
 //Telekinesis has no effect on a cable
 /obj/structure/cable/attack_tk(mob/user)
@@ -121,6 +118,12 @@ By design, d1 is the smallest direction and d2 is the highest
 //
 /obj/structure/cable/attackby(obj/item/W, mob/user)
 
+
+	return
+	//TODO Folix: this logic
+
+
+	/*
 	var/turf/T = src.loc
 	if(T.intact)
 		return
@@ -167,8 +170,14 @@ By design, d1 is the smallest direction and d2 is the highest
 
 	src.add_fingerprint(user)
 
+*/
 // shock the user with probability prb
 /obj/structure/cable/proc/shock(mob/user, prb, var/siemens_coeff = 1.0)
+	return 0
+
+	//TODO Folix: add shock logic
+
+	/*
 	if(!prob(prb))
 		return 0
 	if (electrocute_mob(user, powernet, src, siemens_coeff))
@@ -178,6 +187,7 @@ By design, d1 is the smallest direction and d2 is the highest
 		return 1
 	else
 		return 0
+	*/
 
 //explosion handling
 /obj/structure/cable/ex_act(severity)
@@ -218,29 +228,6 @@ obj/structure/cable/proc/cableColor(var/colorC)
 		if("white")
 			icon = 'icons/obj/power_cond/power_cond_white.dmi'
 
-////////////////////////////////////////////
-// Power related
-///////////////////////////////////////////
-
-obj/structure/cable/proc/add_avail(var/amount)
-	if(powernet)
-		powernet.newavail += amount
-
-obj/structure/cable/proc/add_load(var/amount)
-	if(powernet)
-		powernet.load += amount
-
-obj/structure/cable/proc/surplus()
-	if(powernet)
-		return powernet.avail-powernet.load
-	else
-		return 0
-
-obj/structure/cable/proc/avail()
-	if(powernet)
-		return powernet.avail
-	else
-		return 0
 
 /////////////////////////////////////////////////
 // Cable laying helpers
@@ -249,7 +236,9 @@ obj/structure/cable/proc/avail()
 //handles merging diagonally matching cables
 //for info : direction^3 is flipping horizontally, direction^12 is flipping vertically
 /obj/structure/cable/proc/mergeDiagonalsNetworks(var/direction)
-
+	//TODO Folix: diagonole logic
+	return
+/*
 	//search for and merge diagonally matching cables from the first direction component (north/south)
 	var/turf/T  = get_step(src, direction&3)//go north/south
 
@@ -286,13 +275,19 @@ obj/structure/cable/proc/avail()
 				var/datum/powernet/newPN = new()
 				newPN.add_cable(C)
 
-			if(powernet) //if we already have a powernet, then merge the two powernets
+			if(parentNetwork != null) //if we already have a powernet, then merge the two powernets
 				merge_powernets(powernet,C.powernet)
 			else
-				C.powernet.add_cable(src) //else, we simply connect to the matching cable powernet
+				C.parentNetwork = src.parentNetwork //else, we simply connect to the matching cable powernet
+*/
 
 // merge with the powernets of power objects in the given direction
 /obj/structure/cable/proc/mergeConnectedNetworks(var/direction)
+
+	//TODO Folix: This logic
+
+	return
+	/*
 
 	var/fdir = (!direction)? 0 : turn(direction, 180) //flip the direction, to match with the source position on its turf
 
@@ -318,9 +313,16 @@ obj/structure/cable/proc/avail()
 				merge_powernets(powernet,C.powernet)
 			else
 				C.powernet.add_cable(src) //else, we simply connect to the matching cable powernet
-
+*/
 // merge with the powernets of power objects in the source turf
 /obj/structure/cable/proc/mergeConnectedNetworksOnTurf()
+
+
+	return
+
+	//TODO Folix: this logic
+
+	/*
 	var/list/to_connect = list()
 
 	if(!powernet) //if we somehow have no powernet, make one (should not happen for cables)
@@ -343,7 +345,7 @@ obj/structure/cable/proc/avail()
 			var/obj/machinery/power/apc/N = AM
 			if(!N.terminal)	continue // APC are connected through their terminal
 
-			if(N.terminal.powernet == powernet)
+			if(N.terminal.powerNode.parentNetwork == powerNode.parentNetwork)
 				continue
 
 			to_connect += N.terminal //we'll connect the machines after all cables are merged
@@ -360,7 +362,7 @@ obj/structure/cable/proc/avail()
 	for(var/obj/machinery/power/PM in to_connect)
 		if(!PM.connect_to_network())
 			PM.disconnect_from_network() //if we somehow can't connect the machine to the new powernet, remove it from the old nonetheless
-
+*/
 //////////////////////////////////////////////
 // Powernets handling helpers
 //////////////////////////////////////////////
@@ -405,6 +407,14 @@ obj/structure/cable/proc/avail()
 //should be called after placing a cable which extends another cable, creating a "smooth" cable that no longer terminates in the centre of a turf.
 //needed as this can, unlike other placements, disconnect cables
 /obj/structure/cable/proc/denode()
+
+
+	return
+
+	//TODO Folix: this logic
+
+
+	/*
 	var/turf/T1 = loc
 	if(!T1) return
 
@@ -415,9 +425,18 @@ obj/structure/cable/proc/avail()
 
 		if(PN.is_empty()) //can happen with machines made nodeless when smoothing cables
 			qdel(PN)
+*/
 
 // cut the cable's powernet at this cable and updates the powergrid
 /obj/structure/cable/proc/cut_cable_from_powernet()
+
+	return
+
+
+	//TODO Folix: this logic
+
+	/*
+
 	var/turf/T1 = loc
 	var/list/P_list
 	if(!T1)	return
@@ -448,7 +467,7 @@ obj/structure/cable/proc/avail()
 		for(var/obj/machinery/power/P in T1)
 			if(!P.connect_to_network()) //can't find a node cable on a the turf to connect to
 				P.disconnect_from_network() //remove from current network
-
+*/
 ///////////////////////////////////////////////
 // The cable coil object, used for laying cable
 ///////////////////////////////////////////////
@@ -673,8 +692,9 @@ obj/structure/cable/proc/avail()
 		C.updateicon()
 
 		//create a new powernet with the cable, if needed it will be merged later
-		var/datum/powernet/PN = new()
-		PN.add_cable(C)
+		//TODO Folix: review next two lines
+		//var/datum/powernet/PN = new()
+		//PN.add_cable(C)
 
 		C.mergeConnectedNetworks(C.d2) //merge the powernet with adjacents powernets
 		C.mergeConnectedNetworksOnTurf() //merge the powernet with on turf powernets
@@ -693,6 +713,12 @@ obj/structure/cable/proc/avail()
 // called when cable_coil is click on an installed obj/cable
 // or click on a turf that already contains a "node" cable
 /obj/item/stack/cable_coil/proc/cable_join(obj/structure/cable/C, mob/user)
+
+	return
+
+	//TODO Folix: this logic
+
+	/*
 	var/turf/U = user.loc
 	if(!isturf(U))
 		return
@@ -805,7 +831,7 @@ obj/structure/cable/proc/avail()
 
 		C.denode()// this call may have disconnected some cables that terminated on the centre of the turf, if so split the powernets.
 		return
-
+*/
 //////////////////////////////
 // Misc.
 /////////////////////////////

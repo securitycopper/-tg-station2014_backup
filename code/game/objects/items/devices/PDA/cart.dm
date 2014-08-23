@@ -323,7 +323,9 @@ Code:
 			if(!powmonitor)
 				menu += "\red No connection<BR>"
 			else
-				var/list/L = list()
+			//	var/list/L = list()
+				//TODO Folix: this logic
+				/*
 				for(var/obj/machinery/power/terminal/term in powmonitor.powernet.nodes)
 					if(istype(term.master, /obj/machinery/power/apc))
 						var/obj/machinery/power/apc/A = term.master
@@ -344,7 +346,7 @@ Code:
 						menu += " [S[A.equipment+1]] [S[A.lighting+1]] [S[A.environ+1]] [add_lspace(A.lastused_total, 6)]  [A.cell ? "[add_lspace(round(A.cell.percent()), 3)]% [chg[A.charging+1]]" : "  N/C"]<BR>"
 
 				menu += "</FONT></PRE>"
-
+*/
 		if (44) //medical records //This thing only displays a single screen so it's hard to really get the sub-menu stuff working.
 			menu = "<h4><img src=pda_medical.png> Medical Record List</h4>"
 			if(data_core.general)

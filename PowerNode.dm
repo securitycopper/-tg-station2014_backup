@@ -43,7 +43,8 @@
 	var/setHasBattery = 0
 	var/setBatteryMaxCapacity=0
 	var/setBatteryChargeRate=100
-	//var/setBatteryMaxDischargeRate=200
+	var/setBatteryMaxDischargeRate=9999999999 //For logic reasons, i always want battery discharge to be equal to current energy stored, but smes wants to set this value so am preserving it
+
 
 
 	//after setting these values, call PowerNode.update()
@@ -236,6 +237,12 @@
 				setCurrentLoad=0
 
 */
+
+
+/datum/power/PowerNode/proc/remove(var/datum/power/PowerNode/toRemove)
+	//TODO: remove logic
+	return
+
 
 /datum/power/PowerNode/proc/requestPowerOn()
 	if(isOn == 1)

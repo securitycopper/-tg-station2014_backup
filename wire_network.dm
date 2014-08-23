@@ -196,8 +196,15 @@
 */
 
 
-/datum/wire_network/proc/add(var/datum/power/PowerNode/powerNode)
+/datum/wire_network/proc/remove(var/datum/power/PowerNode/powerNode)
+	//TODO Folix: add remove logic
 
+	return
+
+
+/datum/wire_network/proc/add(var/datum/power/PowerNode/powerNode)
+	//if(powerNode.childNetwork==null && powerNode.parentNetwork ==null)
+	//	powerNode.parentNetwork = src
 
 
 	//If the powerNode child node is this network, it goes in supply list

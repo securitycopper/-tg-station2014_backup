@@ -55,6 +55,25 @@ display round(lastgen) and plasmatank amount
 	var/power_output = 1
 	var/consumption = 0
 
+
+/obj/machinery/power/port_gen/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
+
+
 /obj/machinery/power/port_gen/proc/HasFuel() //Placeholder for fuel check.
 	return 1
 
@@ -68,8 +87,12 @@ display round(lastgen) and plasmatank amount
 	return
 
 /obj/machinery/power/port_gen/process()
-	if(active && HasFuel() && !crit_fail && anchored && powernet)
-		add_avail(power_gen * power_output)
+	if(active && HasFuel() && !crit_fail && anchored && powerNode.parentNetwork != null)
+		var/newOutput=power_gen * power_output
+		powerNode.setCurrentSupply = newOutput
+		powerNode.setMaxPotentialSupply = newOutput
+		powerNode.update()
+
 		UseFuel()
 		src.updateDialog()
 
@@ -276,7 +299,7 @@ display round(lastgen) and plasmatank amount
 	var/stack_percent = round(sheet_left * 100, 1)
 	dat += text("Current stack: [stack_percent]% <br>")
 	dat += text("Power output: <A href='?src=\ref[src];action=lower_power'>-</A> [power_gen * power_output] <A href='?src=\ref[src];action=higher_power'>+</A><br>")
-	dat += text("Power current: [(powernet == null ? "Unconnected" : "[avail()]")]<br>")
+	dat += text("Power current: [(powerNode.parentNetwork == null ? "Unconnected" : "[powerNode.calculatedBatteryStoredEnergy-powerNode.calculatedCurrentBatteryDistargeRate]")]<br>")
 	dat += text("Heat: [heat]<br>")
 	dat += "<br><A href='?src=\ref[src];action=close'>Close</A>"
 	user << browse("[dat]", "window=port_gen")

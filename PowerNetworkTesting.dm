@@ -1,27 +1,9 @@
-/*
-	These are simple defaults for your project.
- */
-
-world
-	fps = 25		// 25 frames per second
-	icon_size = 32	// 32x32 icon size by default
-
-	view = 6		// show up to 6 tiles outward from center (13x13 view)
-
-
-// Make objects move 8 pixels per tick when walking
-
-mob
-	step_size = 8
-
-obj
-	step_size = 8
 
 var/global/datum/power/PowerNode/apsForLighting
-#define DEBUG_POWERNODE_BATTERY 1
-#define DEBUG_WIRENETWORK_PROCESS 1
-#define DEBUG_WIRENETWORK_ADD 1
-#define DEBUG_WIRENETWORK_PRINT_TREE 1
+//#define DEBUG_POWERNODE_BATTERY 1
+//#define DEBUG_WIRENETWORK_PROCESS 1
+//#define DEBUG_WIRENETWORK_ADD 1
+//#define DEBUG_WIRENETWORK_PRINT_TREE 1
 client/verb
 	TestBuiltInPowerNetwork()
 
@@ -157,9 +139,10 @@ no reason to have a max discharge rate so i'll comment that out for now.
 			powerNodeWithBattery.prcessBattery()
 
 		for(var/datum/wire_network/wireNetwork in powerNetworkControllerProcessingLoopList)
-			wireNetwork.process()
-			#if defined(DEBUG_WIRENETWORK_PRINT_TREE)
+			//wireNetwork.process()
 			wireNetwork.debugDebugNetwork()
+			#if defined(DEBUG_WIRENETWORK_PRINT_TREE)
+
 			#endif
 
 

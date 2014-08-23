@@ -9,27 +9,50 @@
 	icon_state = "smes"
 	density = 1
 	anchored = 1
-	use_power = 0
-	var/capacity = 5e6 // maximum charge
-	var/charge = 1e6 // actual charge
+//	use_power = 0
+//	var/capacity = 0 //PowerNode: this is kept only to support the orgional map configuration. The value is only checked once
+	var/charge = 1e6 //PowerNode: this is kept only to support the orgional map configuration. The value is only checked once
 
-	var/input_attempt = 0 // 1 = attempting to charge, 0 = not attempting to charge
-	var/inputting = 0 // 1 = actually inputting, 0 = not inputting
-	var/input_level = 50000 // amount of power the SMES attempts to charge by
+//	var/input_attempt = 0 // 1 = attempting to charge, 0 = not attempting to charge
+	//var/inputting = 0 // 1 = actually inputting, 0 = not inputting
+	//var/input_level = 50000 // amount of power the SMES attempts to charge by
 	var/input_level_max = 200000 // cap on input_level
-	var/input_available = 0 // amount of charge available from input last tick
+//	var/input_available = 0 // amount of charge available from input last tick
 
-	var/output_attempt = 1 // 1 = attempting to output, 0 = not attempting to output
-	var/outputting = 1 // 1 = actually outputting, 0 = not outputting
-	var/output_level = 50000 // amount of power the SMES attempts to output
-	var/output_level_max = 200000 // cap on output_level
-	var/output_used = 0 // amount of power actually outputted. may be less than output_level if the powernet returns excess power
+//	var/output_attempt = 1 // 1 = attempting to output, 0 = not attempting to output
+//	var/outputting = 1 // 1 = actually outputting, 0 = not outputting
+//	var/output_level = 50000 // amount of power the SMES attempts to output
+	//var/output_level_max = 200000 // cap on output_level
+//	var/output_used = 0 // amount of power actually outputted. may be less than output_level if the powernet returns excess power
 
 	var/obj/machinery/power/terminal/terminal = null
 
 
 /obj/machinery/power/smes/New()
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = "Smes"
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = 10
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=1
+	powerNode.setBatteryMaxCapacity=5e6
+	powerNode.calculatedBatteryStoredEnergy = 1e6
+	powerNode.setBatteryChargeRate=50000
+	powerNode.setBatteryMaxDischargeRate=200000
+
+
+	if(charge!=0)
+		powerNode.calculatedBatteryStoredEnergy = charge
+
 	component_parts = list()
 	component_parts += new /obj/item/weapon/circuitboard/smes(null)
 	component_parts += new /obj/item/weapon/stock_parts/cell/high(null)
@@ -61,11 +84,12 @@
 	var/C = 0
 	for(var/obj/item/weapon/stock_parts/capacitor/CP in component_parts)
 		IO += CP.rating
-	input_level_max = 200000 * IO
-	output_level_max = 200000 * IO
+	powerNode.setBatteryChargeRate = 200000 * IO
+	powerNode.setBatteryMaxDischargeRate = 200000 * IO
 	for(var/obj/item/weapon/stock_parts/cell/PC in component_parts)
 		C += PC.maxcharge
-	capacity = C / (15000) * 1e6
+	powerNode.setBatteryMaxCapacity = C / (15000) * 1e6
+	powerNode.update()
 
 /obj/machinery/power/smes/attackby(obj/item/I, mob/user)
 	if(default_deconstruction_screwdriver(user, "[initial(icon_state)]-o", initial(icon_state), I))
@@ -123,12 +147,12 @@
 		return
 
 
-	overlays += image('icons/obj/power.dmi', "smes-op[outputting]")
+	overlays += image('icons/obj/power.dmi', "smes-op[powerNode.calculatedCurrentBatteryDistargeRate]")
 
-	if(inputting)
+	if(powerNode.isOn ==1 && powerNode.setBatteryChargeRate>0)
 		overlays += image('icons/obj/power.dmi', "smes-oc1")
 	else
-		if(input_attempt)
+		if(powerNode.setBatteryChargeRate)
 			overlays += image('icons/obj/power.dmi', "smes-oc0")
 
 	var/clevel = chargedisplay()
@@ -138,20 +162,23 @@
 
 
 /obj/machinery/power/smes/proc/chargedisplay()
-	return round(5.5*charge/capacity)
+	return round(5.5*powerNode.calculatedBatteryStoredEnergy/powerNode.setBatteryMaxCapacity)
 
 /obj/machinery/power/smes/process()
 
 	if(stat & BROKEN)	return
 
 	//store machine state to see if we need to update the icon overlays
-	var/last_disp = chargedisplay()
-	var/last_chrg = inputting
-	var/last_onln = outputting
+	//var/last_disp = chargedisplay()
+	//var/last_chrg = inputting
+	//var/last_onln = outputting
 
+	var/datum/wire_network/terminalWireNetwork = powerNode.parentNetwork
+/*
 	//inputting
-	if(terminal && input_attempt)
-		input_available = terminal.surplus()
+	if(terminalWireNetwork && input_attempt)
+
+		input_available = terminalWireNetwork.wireNetworkMaxPotentialSupply - terminalWireNetwork.wireNetworkCurrentSupply
 
 		if(inputting)
 			if(input_available > 0 && input_available >= input_level)		// if there's power available, try to charge
@@ -168,7 +195,8 @@
 		else
 			if(input_attempt && input_available > 0 && input_available >= input_level)
 				inputting = 1
-
+*/
+/*
 	//outputting
 	if(outputting)
 		output_used = min( charge/SMESRATE, output_level)		//limit output to that stored
@@ -184,9 +212,9 @@
 		outputting = 1
 	else
 		output_used = 0
-
+*/
 	// only update icon if state changed
-	if(last_disp != chargedisplay() || last_chrg != inputting || last_onln != outputting)
+	if(terminalWireNetwork.)
 		update_icon()
 
 
@@ -194,6 +222,8 @@
 // called after all power processes are finished
 // restores charge level to smes if there was excess this ptick
 /obj/machinery/power/smes/proc/restore()
+	//Only power that is needed is drained from batteries with the PowerNode System so this logic goes away
+	/*
 	if(stat & BROKEN)
 		return
 
@@ -201,11 +231,11 @@
 		output_used = 0
 		return
 
-	var/excess = powernet.netexcess		// this was how much wasn't used on the network last ptick, minus any removed by other SMESes
+	//var/excess = powernet.netexcess		// this was how much wasn't used on the network last ptick, minus any removed by other SMESes
 
-	excess = min(output_used, excess)				// clamp it to how much was actually output by this SMES last ptick
+	//excess = min(output_used, excess)				// clamp it to how much was actually output by this SMES last ptick
 
-	excess = min((capacity-charge)/SMESRATE, excess)	// for safety, also limit recharge by space capacity of SMES (shouldn't happen)
+	//excess = min((capacity-charge)/SMESRATE, excess)	// for safety, also limit recharge by space capacity of SMES (shouldn't happen)
 
 	// now recharge this amount
 
@@ -218,13 +248,14 @@
 
 	if(clev != chargedisplay() ) //if needed updates the icons overlay
 		update_icon()
+		*/
 	return
 
 
-/obj/machinery/power/smes/add_load(var/amount)
+/*/obj/machinery/power/smes/add_load(var/amount)
 	if(terminal && terminal.powernet)
 		terminal.powernet.load += amount
-
+*/
 
 /obj/machinery/power/smes/attack_ai(mob/user)
 	if(stat & BROKEN) return
@@ -241,22 +272,25 @@
 	if(!user)
 		return
 
+	var/inputAvailable = 0
+	if(powerNode.parentNetwork != null)
+		inputAvailable = powerNode.parentNetwork.wireNetworkMaxPotentialSupply -powerNode.parentNetwork.wireNetworkLoad
 	var/list/data = list(
-		"capacityPercent" = round(100.0*charge/capacity, 0.1),
-		"capacity" = capacity,
-		"charge" = charge,
+		"capacityPercent" = round(100.0*powerNode.calculatedBatteryStoredEnergy/powerNode.setBatteryMaxCapacity, 0.1),
+		"capacity" = powerNode.setBatteryMaxCapacity,
+		"charge" = powerNode.calculatedBatteryStoredEnergy,
 
-		"inputAttempt" = input_attempt,
-		"inputting" = inputting,
-		"inputLevel" = input_level,
+		"inputAttempt" = powerNode.setBatteryChargeRate,
+		"inputting" = powerNode.setBatteryChargeRate,
+		"inputLevel" = powerNode.setBatteryChargeRate,
 		"inputLevelMax" = input_level_max,
-		"inputAvailable" = input_available,
+		"inputAvailable" = inputAvailable,
 
-		"outputAttempt" = output_attempt,
-		"outputting" = outputting,
-		"outputLevel" = output_level,
-		"outputLevelMax" = output_level_max,
-		"outputUsed" = output_used
+		"outputAttempt" = powerNode.calculatedCurrentBatteryDistargeRate,
+		"outputting" = powerNode.calculatedCurrentBatteryDistargeRate,
+		"outputLevel" = min(powerNode.setBatteryMaxDischargeRate, powerNode.calculatedBatteryStoredEnergy),
+		"outputLevelMax" = powerNode.setBatteryMaxDischargeRate,
+		"outputUsed" = powerNode.calculatedCurrentBatteryDistargeRate
 	)
 
 	// update the ui if it exists, returns null if no ui is passed/found
@@ -280,75 +314,99 @@
 
 
 	else if( href_list["input_attempt"] )
-		input_attempt = text2num(href_list["input_attempt"])
-		if(!input_attempt)
-			inputting = 0
+		powerNode.setBatteryChargeRate = text2num(href_list["input_attempt"])
+		if(!powerNode.setBatteryChargeRate)
+			powerNode.setBatteryChargeRate = 0
 		log_smes(usr.ckey)
 		update_icon()
 
 	else if( href_list["output_attempt"] )
-		output_attempt = text2num(href_list["output_attempt"])
-		if(!output_attempt)
-			outputting = 0
+		powerNode.setBatteryMaxDischargeRate = text2num(href_list["output_attempt"])
+		if(!powerNode.setBatteryMaxDischargeRate)
+			powerNode.setBatteryMaxDischargeRate = 0
 		log_smes(usr.ckey)
 		update_icon()
 
 	else if( href_list["set_input_level"] )
 		switch(href_list["set_input_level"])
 			if("max")
-				input_level = input_level_max
+				powerNode.setBatteryChargeRate = input_level_max
 			if("custom")
 				var/custom = input(usr, "What rate would you like this SMES to attempt to charge at? Max is [input_level_max].") as null|num
 				if(isnum(custom))
 					href_list["set_input_level"] = custom
 					.()
 			if("plus")
-				input_level += 10000
+				powerNode.setBatteryChargeRate += 10000
 			if("minus")
-				input_level -= 10000
+				powerNode.setBatteryChargeRate -= 10000
 			else
 				var/n = text2num(href_list["set_input_level"])
 				if(isnum(n))
-					input_level = n
+					powerNode.setBatteryChargeRate = n
 
-		input_level = Clamp(input_level, 0, input_level_max)
+		powerNode.setBatteryChargeRate = Clamp(powerNode.setBatteryChargeRate, 0, input_level_max)
 		log_smes(usr.ckey)
+
 
 	else if(href_list["set_output_level"])
 		switch(href_list["set_output_level"])
 			if("max")
-				output_level = output_level_max
+				powerNode.setBatteryMaxDischargeRate = INFINITY
 			if("custom")
-				var/custom = input(usr, "What rate would you like this SMES to attempt to output at? Max is [output_level_max].") as null|num
+				var/custom = input(usr, "What rate would you like this SMES to attempt to output at? Max is [INFINITY].") as null|num
 				if(isnum(custom))
 					href_list["set_output_level"] = custom
 					.()
 			if("plus")
-				output_level += 10000
+				powerNode.setBatteryMaxDischargeRate += 10000
 			if("minus")
-				output_level -= 10000
+				powerNode.setBatteryMaxDischargeRate -= 10000
 			else
 				var/n = text2num(href_list["set_output_level"])
 				if(isnum(n))
-					output_level = n
+					powerNode.setBatteryMaxDischargeRate = n
 
-		output_level = Clamp(output_level, 0, output_level_max)
+		//TODO Folix: Check this logic
+		powerNode.setBatteryMaxDischargeRate = Clamp(powerNode.setBatteryMaxDischargeRate, 0, INFINITY)
+
 		log_smes(usr.ckey)
 
+	powerNode.update()
 /obj/machinery/power/smes/proc/log_smes(var/user = "")
-	investigate_log("input/output; [input_level>output_level?"<font color='green'>":"<font color='red'>"][input_level]/[output_level]</font> | Charge: [charge] | Output-mode: [output_attempt?"<font color='green'>on</font>":"<font color='red'>off</font>"] | Input-mode: [input_attempt?"<font color='green'>auto</font>":"<font color='red'>off</font>"] by [user]","singulo")
+	investigate_log("input/output; [powerNode.setBatteryChargeRate>powerNode.setBatteryMaxDischargeRate?"<font color='green'>":"<font color='red'>"][powerNode.setBatteryChargeRate]/[powerNode.setBatteryMaxDischargeRate]</font> | Charge: [powerNode.calculatedBatteryStoredEnergy] | Output-mode: [powerNode.setBatteryMaxDischargeRate?"<font color='green'>on</font>":"<font color='red'>off</font>"] | Input-mode: [powerNode.setBatteryChargeRate?"<font color='green'>auto</font>":"<font color='red'>off</font>"] by [user]","singulo")
 
 
 /obj/machinery/power/smes/emp_act(severity)
-	input_attempt = rand(0,1)
-	inputting = input_attempt
-	output_attempt = rand(0,1)
-	outputting = output_attempt
-	output_level = rand(0, output_level_max)
-	input_level = rand(0, input_level_max)
-	charge -= 1e6/severity
-	if (charge < 0)
-		charge = 0
+	//new emp behavior,
+
+	//Turn off charge
+	if(rand(0,1)==0)
+		powerNode.setBatteryChargeRate =0
+
+
+	//Turn off output
+	if(rand(0,1)==0)
+		powerNode.setBatteryMaxDischargeRate = rand(0, min( powerNode.setBatteryMaxDischargeRate, powerNode.calculatedBatteryStoredEnergy))
+
+
+
+
+	//input_attempt = rand(0,1)
+
+
+
+
+//	inputting = input_attempt
+//	output_attempt = rand(0,1)
+//	outputting = output_attempt
+//	output_level = rand(0, output_level_max)
+	powerNode.setBatteryChargeRate = rand(0, input_level_max)
+	powerNode.calculatedBatteryStoredEnergy -= 1e6/severity
+	if (powerNode.calculatedBatteryStoredEnergy < 0)
+		powerNode.calculatedBatteryStoredEnergy = 0
+
+	powerNode.update()
 	update_icon()
 	log_smes("an emp")
 	..()
@@ -359,8 +417,8 @@
 	name = "magical power storage unit"
 	desc = "A high-capacity superconducting magnetic energy storage (SMES) unit. Magically produces power."
 	process()
-		capacity = INFINITY
-		charge = INFINITY
+		powerNode.setBatteryMaxCapacity = INFINITY
+		powerNode.calculatedBatteryStoredEnergy = INFINITY
 		..()
 
 

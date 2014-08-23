@@ -75,11 +75,10 @@
 	for(var/obj/machinery/power/smes/S in world)
 		if(istype(get_area(S), /area/turret_protected) || S.z != 1)
 			continue
-		S.charge = 0
-		S.output_level = 0
-		S.output_attempt = 0
+		S.powerNode.calculatedBatteryStoredEnergy = 0
 		S.update_icon()
 		S.power_change()
+		S.powerNode.update()
 
 	var/list/skipped_areas = list(/area/engine/engineering, /area/turret_protected/ai)
 
@@ -125,11 +124,11 @@
 	for(var/obj/machinery/power/smes/S in world)
 		if(S.z != 1)
 			continue
-		S.charge = S.capacity
-		S.output_level = S.output_level_max
-		S.output_attempt = 1
+		S.powerNode.calculatedBatteryStoredEnergy = S.powerNode.setBatteryMaxCapacity
+		S.powerNode.setBatteryMaxDischargeRate = S.powerNode.calculatedBatteryStoredEnergy
 		S.update_icon()
 		S.power_change()
+		S.powerNode.update()
 	for(var/area/A in world)
 		if(!istype(A, /area/space) && !istype(A, /area/shuttle) && !istype(A,/area/arrival))
 			A.power_light = 1
@@ -143,9 +142,9 @@
 	for(var/obj/machinery/power/smes/S in world)
 		if(S.z != 1)
 			continue
-		S.charge = S.capacity
-		S.output_level = S.output_level_max
-		S.output_attempt = 1
+		S.powerNode.calculatedBatteryStoredEnergy = S.powerNode.setBatteryMaxCapacity
+		S.powerNode.setBatteryMaxDischargeRate = S.powerNode.calculatedBatteryStoredEnergy
 		S.update_icon()
 		S.power_change()
+		S.powerNode.update()
 
