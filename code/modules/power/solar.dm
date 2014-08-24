@@ -29,7 +29,6 @@ var/list/solars_list = list()
 	..(loc)
 	Make(S)
 
-
 	powerNode = new /datum/power/PowerNode()
 	//Power Node Behavior
 	powerNode.setName = "Solar Panel "
@@ -48,7 +47,8 @@ var/list/solars_list = list()
 
 
 
-	connect_to_network()
+
+	//connect_to_network()
 
 /obj/machinery/power/solar/Destroy()
 	unset_control() //remove from control computer
@@ -387,6 +387,22 @@ var/list/solars_list = list()
 
 /obj/machinery/power/solar_control/initialize()
 	..()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = "Solar Control "
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
+
 	if(!powerNode.parentNetwork) return
 	set_panels(cdir)
 

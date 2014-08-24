@@ -201,12 +201,12 @@
 
 // rebuild all power networks from scratch - only called at world creation or by the admin verb
 /proc/makepowernets()
-
+	world << "Making power grid"
 	for(var/obj/structure/cable/currentCableNode in cable_list)
 		if(currentCableNode.parentNetwork == null)
 			var/datum/wire_network/newWireNetwork = new /datum/wire_network
 			propagate_network(currentCableNode,newWireNetwork,null)
-
+	world << "Powergrid created with: [powerNetworkControllerProcessingLoopList.len] sections"
 
 //remove the old powernet and replace it with a new one throughout the network.
 /*
@@ -220,15 +220,18 @@
 
 
 	//This contains a list of objects that have a parentNode var
-	var/list/toProcessCable = list()
+	//TODO Folix: replace this with normal list after this is working
 
-	toProcessCable+=toPropagate;
+	var/datum/datastructures/LinkedList/toProcessCable = new /datum/datastructures/LinkedList()
+
+//	var/list/toProcessCable = list()
+
+	toProcessCable.push(powerNodeSpaceWithoutNetowrk);
 
 	//Propagate along wires
-	while(toProcessCable.len >0)
+	while(toProcessCable.size >0)
 		//Pop first element
-		var/obj/structure/cable/currentNode = toProcessCable.Cut(1,2)
-
+		var/obj/structure/cable/currentNode = toProcessCable.pop()
 		if(currentNode.parentNetwork==toReplace)
 			currentNode.parentNetwork = toPropagate
 
@@ -240,10 +243,11 @@
 				cdir = get_dir(T,currentNode.loc)
 				for(var/obj/structure/cable/C in T)
 					if(C.d1 == cdir || C.d2 == cdir)
-						toProcessCable+= C
+						toProcessCable.push(C)
 
 			//Attach any machines if found on this space
 			for(var/obj/machinery/machine in src)
+
 				var/datum/power/PowerNode/machinepowerNode = machine.powerNode
 				if(machinepowerNode!=null && machine.anchored && machinepowerNode.parentNetwork == toReplace)
 					//remove machine from existing network and add to new one

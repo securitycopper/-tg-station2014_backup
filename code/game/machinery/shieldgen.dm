@@ -379,6 +379,24 @@
 			"You hear heavy droning.")
 	src.add_fingerprint(user)
 
+//TODO FOlix: replace with two power nodes, one on each of the naboring networks
+/obj/machinery/shieldwallgen/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setIdleLoad = 10
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=1
+	powerNode.setBatteryMaxCapacity=500
+	powerNode.setBatteryChargeRate=10
+
 /obj/machinery/shieldwallgen/process()
 	spawn(100)
 		power()

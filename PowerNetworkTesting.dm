@@ -130,7 +130,8 @@ no reason to have a max discharge rate so i'll comment that out for now.
 
 */
 
-
+	Power_Count_Networks()
+		world << "[powerNetworkControllerProcessingLoopList.len]"
 
 	TestBuiltInPowerNetwork_SimulateTick()
 
@@ -141,6 +142,7 @@ no reason to have a max discharge rate so i'll comment that out for now.
 		for(var/datum/wire_network/wireNetwork in powerNetworkControllerProcessingLoopList)
 			//wireNetwork.process()
 			wireNetwork.debugDebugNetwork()
+
 			#if defined(DEBUG_WIRENETWORK_PRINT_TREE)
 
 			#endif
