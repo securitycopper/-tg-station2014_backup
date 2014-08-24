@@ -246,10 +246,11 @@
 						toProcessCable.push(C)
 
 			//Attach any machines if found on this space
-			for(var/obj/machinery/machine in src)
+			for(var/obj/machinery/machine in currentNode.loc)
 
 				var/datum/power/PowerNode/machinepowerNode = machine.powerNode
 				if(machinepowerNode!=null && machine.anchored && machinepowerNode.parentNetwork == toReplace)
+
 					//remove machine from existing network and add to new one
 					var/datum/wire_network/machineparentNetwork = machinepowerNode.parentNetwork
 					if(machineparentNetwork!=null)
