@@ -249,21 +249,36 @@
 			for(var/obj/machinery/machine in currentNode.loc)
 
 				var/datum/power/PowerNode/machinepowerNode = machine.powerNode
-				if(machinepowerNode!=null && machine.anchored && machinepowerNode.parentNetwork == toReplace)
+				if(machinepowerNode!=null && machine.anchored )
+					if(machinepowerNode.setParentNetworkAttachesOnThisSpace == 1 && machinepowerNode.parentNetwork == toReplace)
 
-					//remove machine from existing network and add to new one
-					var/datum/wire_network/machineparentNetwork = machinepowerNode.parentNetwork
-					if(machineparentNetwork!=null)
-					 	//The machine is currently atached to a network, remove it
-						machineparentNetwork.remove(machinepowerNode)
+						//remove machine from existing network and add to new one
+						var/datum/wire_network/machineparentNetwork = machinepowerNode.parentNetwork
+						if(machineparentNetwork!=null)
+						 	//The machine is currently atached to a network, remove it
+							machineparentNetwork.remove(machinepowerNode)
 
-					//now add machine to new network if one exists. it should, but to suppor the off case where one
-					// would want to propagate null for what ever reason. I'll put a check in.
-					if(toPropagate!=null)
-						machinepowerNode.parentNetwork = toPropagate
-						world << "power connecting machine [machinepowerNode.setName]"
-						toPropagate.add(machinepowerNode)
+						//now add machine to new network if one exists. it should, but to suppor the off case where one
+						// would want to propagate null for what ever reason. I'll put a check in.
+						if(toPropagate!=null)
+							machinepowerNode.parentNetwork = toPropagate
+							world << "power connecting machine [machinepowerNode.setName]"
+							toPropagate.add(machinepowerNode)
 
+					if(machinepowerNode.setParentNetworkAttachesOnThisSpace == 0 && machinepowerNode.childNetwork == toReplace)
+
+						//remove machine from existing network and add to new one
+						var/datum/wire_network/machinechildNetwork = machinepowerNode.childNetwork
+						if(machinechildNetwork!=null)
+						 	//The machine is currently atached to a network, remove it
+							machinechildNetwork.remove(machinepowerNode)
+
+						//now add machine to new network if one exists. it should, but to suppor the off case where one
+						// would want to propagate null for what ever reason. I'll put a check in.
+						if(toPropagate!=null)
+							machinepowerNode.childNetwork = toPropagate
+							world << "power connecting machine [machinepowerNode.setName]"
+							toPropagate.add(machinepowerNode)
 
 
 

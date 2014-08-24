@@ -37,6 +37,7 @@
 	powerNode.setCanAutoStartToIdle = 1
 	powerNode.setIdleLoad = 10
 	powerNode.setCurrentLoad = 0
+	powerNode.setParentNetworkAttachesOnThisSpace = 0
 
 	//for solar, min and max will match
 	powerNode.setMaxPotentialSupply = 0
@@ -214,7 +215,7 @@
 		output_used = 0
 */
 	// only update icon if state changed
-	if(terminalWireNetwork.)
+	if(terminalWireNetwork != null)
 		update_icon()
 
 

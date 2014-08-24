@@ -110,7 +110,7 @@
 
 			brownOutList.add(powerNode)
 
-			//Don't bother turning off if already off
+			//Don't bother turning on if already on
 			if(powerNode.isOn ==1)
 				//If autoMaticList to turn on and now we are turning off,then we need to move it from on list to off list
 				if(powerNode.setCanAutoStartToIdle==1)
@@ -146,7 +146,7 @@
 			autoRestartListOn+=powerNode
 */
 	for(var/datum/power/PowerNode/powerNode in autoRestartListOff)
-		if(powerNode.setCanAutoStartToIdle==1 && powerNode.parentNetwork == src ) //&& powerNode.calculatedTotalLoad + wireNetworkLoad <=wireNetworkMaxPotentialSupply
+		if(powerNode.setCanAutoStartToIdle==1  ) //&& powerNode.calculatedTotalLoad + wireNetworkLoad <=wireNetworkMaxPotentialSupply
 			powerNode.requestPowerOn()
 			if(powerNode.isOn==1)
 				autoRestartListOff-=powerNode
@@ -211,6 +211,8 @@
 	//Example its an aps
 	if(powerNode.childNetwork == src)
 		powerNodesThatCanSupplyPower.Add(powerNode)
+		powerNode.requestPowerOn()
+
 		#if defined(DEBUG_WIRENETWORK_ADD)
 		world<< "DEBUG: [setName] add(): ChildNetworkCanSupplyPower"
 		#endif

@@ -56,22 +56,7 @@ display round(lastgen) and plasmatank amount
 	var/consumption = 0
 
 
-/obj/machinery/power/port_gen/New()
-	powerNode = new /datum/power/PowerNode()
-	//Power Node Behavior
-	powerNode.setName = name
-	powerNode.setCanAutoStartToIdle = 0
-	powerNode.setIdleLoad = 0
-	powerNode.setCurrentLoad = 0
 
-	//for solar, min and max will match
-	powerNode.setMaxPotentialSupply = 0
-	powerNode.setCurrentSupply = 0
-
-	//Battery options
-	powerNode.setHasBattery=0
-	powerNode.setBatteryMaxCapacity=0
-	powerNode.setBatteryChargeRate=0
 
 
 /obj/machinery/power/port_gen/proc/HasFuel() //Placeholder for fuel check.
@@ -133,6 +118,26 @@ display round(lastgen) and plasmatank amount
 
 /obj/machinery/power/port_gen/pacman/New()
 	..()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.setHasBattery=0
+	powerNode.setBatteryMaxCapacity=0
+	powerNode.setBatteryChargeRate=0
+
+
+
+
+
 	component_parts = list()
 	component_parts += new /obj/item/weapon/stock_parts/matter_bin(src)
 	component_parts += new /obj/item/weapon/stock_parts/micro_laser(src)

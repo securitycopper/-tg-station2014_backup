@@ -23,6 +23,9 @@
 	var/setCanAutoStartToIdle = 0
 	var/setIdleLoad = 0
 
+	var/setParentNetworkAttachesOnThisSpace = 1
+
+
 	//load used by this machine, Note: child network will be added to this to dirive total load
 	var/setCurrentLoad = 0
 
@@ -98,7 +101,16 @@
 	#endif
 
 
-	calculatedBatteryStoredEnergy+=setBatteryChargeRate-calculatedCurrentBatteryDistargeRate
+
+	var/chargeDiff = setBatteryChargeRate-calculatedCurrentBatteryDistargeRate
+
+	if(chargeDiff+calculatedBatteryStoredEnergy > setBatteryMaxCapacity)
+		calculatedBatteryStoredEnergy=setBatteryMaxCapacity
+	else
+		calculatedBatteryStoredEnergy+=chargeDiff
+
+
+
 	if (runningOnGridOrBattery == 1)
 		calculatedBatteryStoredEnergy-=setCurrentLoad
 
@@ -114,7 +126,7 @@
 		oldcalculatedChildCurrentPotentialSupply=calculatedBatteryStoredEnergy
 		//ajust child potential supply
 		childNetwork.wireNetworkMaxPotentialSupply +=diff;
-		if(calculatedBatteryStoredEnergy==0)
+		if(calculatedBatteryStoredEnergy<=0)
 			//Battery Depleated
 			childNetwork.wireNetworkCurrentSupply-=calculatedCurrentBatteryDistargeRate
 			calculatedCurrentBatteryDistargeRate = 0
@@ -253,15 +265,21 @@
 		powerNetworkControllerPowerNodeOnBatteryProcessingLoopList.Add(src)
 
 
-	if(parentNetwork.wireNetworkMaxPotentialSupply-parentNetwork.wireNetworkLoad >= setIdleLoad)
+
+	if(parentNetwork != null && parentNetwork.wireNetworkMaxPotentialSupply-parentNetwork.wireNetworkLoad >= setIdleLoad)
 		isOn = 1
 		setCurrentLoad = setIdleLoad
 		parentNetwork.wireNetworkLoad +=setIdleLoad
 		parentNetwork.wireNetworkMaxPotentialSupply+=setMaxPotentialSupply
 		parentNetwork.wireNetworkCurrentSupply += setCurrentSupply
-
+		return
 	//TODO< check if on battery and switch over all load to grid
 
+	if(setHasBattery == 1 && setIdleLoad <= calculatedBatteryStoredEnergy)
+		isOn = 1
+		runningOnGridOrBattery = 1
+		setCurrentLoad = setIdleLoad
+		//the battery process loop will apply power to child nextwork on next tick
 
 /*
 
