@@ -1,4 +1,12 @@
+
+//Add define for % battery used
+//powerNode.calculatedBatteryStoredEnergy / powerNode.setBatteryMaxCapacity
+
+
+
 /datum/power/PowerNode
+
+
 
 	/*
 		Anything can create a PowerNode. The object that uses it needs to
@@ -33,6 +41,7 @@
 	var/setMaxPotentialSupply=0
 	var/setCurrentSupply=0
 
+
 	//By setting this, current load will change based on child network needs
 	//Child network will be supplied power from your battery if your not receiving power from supply
 	var/datum/wire_network/childNetwork
@@ -61,11 +70,12 @@
 	//replaced with  calculatedBatteryStoredEnergy  var/calculatedChildCurrentPotentialSupply = 0
 	var/calculatedCurrentBatteryDistargeRate = 0
 
-
+	var/oldCalculatedPotentialSupply=0
 	var/oldcalculatedChildCurrentPotentialSupply=0
+	var/oldCalculatedLoadOnParentNetwork=0;
 	//var/oldcalculatedBatteryDischargeRate
 
-
+	var/oldCalculatedSupply = 0;
 
 	//readable values
 
@@ -81,6 +91,9 @@
 	//var/isRunningOnBattery = 0
 
 
+	//This isn't to be called from anything else other then the PowerNodeUtils class
+
+	var/list/storedObjects = list()
 
 /datum/power/PowerNode/proc/prcessBattery()
 	/*
@@ -93,7 +106,7 @@
 		#if defined(DEBUG_POWERNODE_BATTERY)
 		world<< "DEBUG: [setName] power is off so battery can't be processed"
 		#endif
-		powerNetworkControllerPowerNodeOnBatteryProcessingLoopList-=src
+		//powerNetworkControllerPowerNodeOnBatteryProcessingLoopList-=src
 		return
 
 	#if defined(DEBUG_POWERNODE_BATTERY)
@@ -101,13 +114,14 @@
 	#endif
 
 
+	//Charging logic
+	if (runningOnGridOrBattery ==0)
+		var/chargeDiff = setBatteryChargeRate-calculatedCurrentBatteryDistargeRate
 
-	var/chargeDiff = setBatteryChargeRate-calculatedCurrentBatteryDistargeRate
-
-	if(chargeDiff+calculatedBatteryStoredEnergy > setBatteryMaxCapacity)
-		calculatedBatteryStoredEnergy=setBatteryMaxCapacity
-	else
-		calculatedBatteryStoredEnergy+=chargeDiff
+		if(chargeDiff+calculatedBatteryStoredEnergy > setBatteryMaxCapacity)
+			calculatedBatteryStoredEnergy=setBatteryMaxCapacity
+		else
+			calculatedBatteryStoredEnergy+=chargeDiff
 
 
 
@@ -174,16 +188,41 @@
 
 	//private powerNode managment settings that shouldn't be changed outside of this class
 	//var/last
+
+
+
+//Utility function called from PowerNodeUtils. This will remove the machine from the network, then reregister it.
+//This process is far simplier then doing alot of checks with adding and removing from the networks
+/datum/power/PowerNode/proc/cycle()
+
 /datum/power/PowerNode/proc/Destory()
 	//TODO: write a destory block
 
 
 
 /datum/power/PowerNode/proc/update()
-	//This method compares old values to new values and updates parent/child network if values have changed
-	calculatedTotalLoad = setCurrentLoad + setBatteryChargeRate + calculatedChildNetworkLoad
+	if(parentNetwork !=null && isOn ==1)
+		//Calculate diffs
 
-	//calculatedChildCurrentPotentialSupply = parentNetwork.wireNetworkMaxPotentialSupply- parentNetwork.wireNetworkLoad
+		var/calculatedLoadDiff = (setCurrentLoad + setBatteryChargeRate) - oldCalculatedLoadOnParentNetwork
+		//var/oldIsOn
+		var/calculatedSupplyDiff = setCurrentSupply - oldCalculatedSupply
+		var/calculatedPotentialSupplyDiff = setMaxPotentialSupply - oldCalculatedSupply
+
+
+		oldCalculatedLoadOnParentNetwork+=calculatedLoadDiff
+		oldCalculatedSupply+=calculatedSupplyDiff
+		oldCalculatedPotentialSupply+=calculatedPotentialSupplyDiff
+
+
+
+
+
+		//update parent
+		parentNetwork.wireNetworkLoad+=calculatedLoadDiff
+		parentNetwork.wireNetworkCurrentSupply += calculatedSupplyDiff
+		parentNetwork.wireNetworkMaxPotentialSupply+=calculatedPotentialSupplyDiff
+
 
 
 
@@ -269,9 +308,7 @@
 	if(parentNetwork != null && parentNetwork.wireNetworkMaxPotentialSupply-parentNetwork.wireNetworkLoad >= setIdleLoad)
 		isOn = 1
 		setCurrentLoad = setIdleLoad
-		parentNetwork.wireNetworkLoad +=setIdleLoad
-		parentNetwork.wireNetworkMaxPotentialSupply+=setMaxPotentialSupply
-		parentNetwork.wireNetworkCurrentSupply += setCurrentSupply
+		update()
 		return
 	//TODO< check if on battery and switch over all load to grid
 

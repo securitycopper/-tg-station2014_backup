@@ -9,6 +9,9 @@
 	desc = "It's an underfloor wiring terminal for power equipment."
 	level = 1
 	layer = TURF_LAYER
+
+	//The master is what it connects to. For example, the master can be an apc
+
 	var/obj/machinery/power/master = null
 	anchored = 1
 	layer = 2.6 // a bit above wires

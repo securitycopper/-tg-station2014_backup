@@ -2290,20 +2290,23 @@ ________________________________________________________________________________
 
 		if("APC")
 			var/obj/machinery/power/apc/A = target
-			if(A.cell&&A.cell.charge)
+			var/datum/power/PowerNode/powerNode = A.powerNode
+			if(powerNode.setHasBattery == 1 && powerNode.calculatedBatteryStoredEnergy > 0)
 				var/datum/effect/effect/system/spark_spread/spark_system = new /datum/effect/effect/system/spark_spread()
 				spark_system.set_up(5, 0, A.loc)
-				while(G.candrain&&A.cell.charge>0&&!maxcapacity)
+				while(G.candrain && powerNode.calculatedBatteryStoredEnergy>0&&!maxcapacity)
+					//Folix: I'm adapting this to the power gride rewrite, but I don't like it.
+
 					drain = rand(G.mindrain,G.maxdrain)
-					if(A.cell.charge<drain)
-						drain = A.cell.charge
+					if(powerNode.calculatedBatteryStoredEnergy<drain)
+						drain = powerNode.calculatedBatteryStoredEnergy
 					if(S.cell.charge+drain>S.cell.maxcharge)
 						drain = S.cell.maxcharge-S.cell.charge
 						maxcapacity = 1//Reached maximum battery capacity.
 					if (do_after(U,10))
 						spark_system.start()
 						playsound(A.loc, "sparks", 50, 1)
-						A.cell.charge-=drain
+						powerNode.calculatedBatteryStoredEnergy-=drain
 						S.cell.charge+=drain
 						totaldrain+=drain
 					else	break

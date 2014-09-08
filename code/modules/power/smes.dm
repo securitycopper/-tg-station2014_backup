@@ -33,7 +33,7 @@
 
 	powerNode = new /datum/power/PowerNode()
 	//Power Node Behavior
-	powerNode.setName = "Smes"
+	powerNode.setName = name
 	powerNode.setCanAutoStartToIdle = 1
 	powerNode.setIdleLoad = 10
 	powerNode.setCurrentLoad = 0
@@ -50,6 +50,7 @@
 	powerNode.setBatteryChargeRate=50000
 	powerNode.setBatteryMaxDischargeRate=200000
 
+	powerNode.update()
 
 	if(charge!=0)
 		powerNode.calculatedBatteryStoredEnergy = charge

@@ -249,6 +249,24 @@
 			for(var/obj/machinery/machine in currentNode.loc)
 
 				var/datum/power/PowerNode/machinepowerNode = machine.powerNode
+
+
+				//Terminal Logic
+				if(istype(machine,/obj/machinery/power/terminal))
+					var/obj/machinery/power/terminal/terminal = machine
+					if(terminal.master!=null)
+						//Now we either will set the child or parent network
+
+						//TODO Folix: add logic to remove from network if one exists
+						if(terminal.master.powerNode.setParentNetworkAttachesOnThisSpace==1)
+							if(terminal.master.powerNode.parentNetwork == toReplace)
+								terminal.master.powerNode.parentNetwork = toPropagate
+
+						else
+							if(terminal.master.powerNode.childNetwork == toReplace)
+								terminal.master.powerNode.childNetwork = toPropagate
+					toPropagate.add(terminal.master.powerNode)
+				//Normal machine logic
 				if(machinepowerNode!=null && machine.anchored )
 					if(machinepowerNode.setParentNetworkAttachesOnThisSpace == 1 && machinepowerNode.parentNetwork == toReplace)
 

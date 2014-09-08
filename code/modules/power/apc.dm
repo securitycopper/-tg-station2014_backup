@@ -53,7 +53,7 @@
 	req_access = list(access_engine_equip)
 	var/area/area
 	var/areastring = null
-	var/obj/item/weapon/stock_parts/cell/cell
+	//var/obj/item/weapon/stock_parts/cell/cell
 
 	var/opened = 0 //0=closed, 1=opened, 2=cover removed
 	var/shorted = 0
@@ -124,7 +124,7 @@
 	powerNode = new /datum/power/PowerNode()
 	//Power Node Behavior
 	powerNode.setName = name
-	powerNode.setCanAutoStartToIdle = 0
+	powerNode.setCanAutoStartToIdle = 1
 	powerNode.setIdleLoad = 0
 	powerNode.setCurrentLoad = 0
 
@@ -137,9 +137,11 @@
 
 
 
-	powerNode.setHasBattery=0
+	powerNode.setHasBattery=1
 	powerNode.setBatteryMaxCapacity=2500
-	powerNode.setBatteryChargeRate=0
+	powerNode.setBatteryChargeRate=2500
+
+	powerNode.update()
 
 
 	if(cell_type!=0)
@@ -232,7 +234,7 @@
 			return
 		if(opened)
 			if(has_electronics && terminal)
-				usr << "The cover is [opened==2?"removed":"open"] and the power cell is [ cell ? "installed" : "missing"]."
+				usr << "The cover is [opened==2?"removed":"open"] and the power cell is [ powerNode.setHasBattery == 1 ? "installed" : "missing"]."
 			else if (!has_electronics && terminal)
 				usr << "There are some wires but no any electronics."
 			else if (has_electronics && !terminal)
@@ -298,7 +300,7 @@
 		if(update_state & UPSTATE_ALLGOOD)
 			icon_state = "apc0"
 		else if(update_state & (UPSTATE_OPENED1|UPSTATE_OPENED2))
-			var/basestate = "apc[ cell ? "2" : "1" ]"
+			var/basestate = "apc[ powerNode.setHasBattery ==1 ? "2" : "1" ]"
 			if(update_state & UPSTATE_OPENED1)
 				if(update_state & (UPSTATE_MAINT|UPSTATE_BROKE))
 					icon_state = "apcmaint" //disabled APC cannot hold cell
@@ -339,7 +341,7 @@
 	update_state = 0
 	update_overlay = 0
 
-	if(cell)
+	if(powerNode.setHasBattery ==1)
 		update_state |= UPSTATE_CELL_IN
 	if(stat & BROKEN)
 		update_state |= UPSTATE_BROKE
@@ -449,7 +451,7 @@
 			opened = 1
 			update_icon()
 	else if	(istype(W, /obj/item/weapon/stock_parts/cell) && opened)	// trying to put a cell inside
-		if(cell)
+		if(powerNode.setHasBattery ==1)
 			user << "There is a power cell already installed."
 			return
 		else
@@ -458,7 +460,8 @@
 				return
 			user.drop_item()
 			W.loc = src
-			cell = W
+			powerUtils.addCell(powerNode,W)
+
 			user.visible_message(\
 				"<span class='danger'>[user.name] has inserted the power cell to [src.name]!</span>",\
 				"You insert the power cell.")
@@ -466,7 +469,7 @@
 			update_icon()
 	else if	(istype(W, /obj/item/weapon/screwdriver))	// haxing
 		if(opened)
-			if (cell)
+			if (powerNode.setHasBattery == 1)
 				user << "<span class='danger'>Close the APC first.</span>" //Less hints more mystery!
 				return
 			else
@@ -655,15 +658,20 @@
 		return
 	src.add_fingerprint(user)
 	if(usr == user && opened && (!issilicon(user)))
-		if(cell)
+		if(powerNode.setHasBattery == 1)
+			//TODO: Folix: Do something with the returned cell
+			var/obj/item/weapon/stock_parts/cell/cell = powerUtils.removeCell(powerNode)
+
+
 			user.put_in_hands(cell)
 			cell.add_fingerprint(user)
 			cell.updateicon()
 
-			src.cell = null
+
+
 			user.visible_message("<span class='danger'>[user.name] removes the power cell from [src.name]!</span>", "You remove the power cell.")
 			//user << "You remove the power cell."
-			charging = 0
+
 			src.update_icon()
 		return
 	if(stat & (BROKEN|MAINT))
@@ -726,10 +734,10 @@
 		"locked" = locked,
 		"isOperating" = operating,
 		"externalPower" = main_status,
-		"powerCellStatus" = cell ? cell.percent() : null,
-		"chargeMode" = chargemode,
-		"chargingStatus" = charging,
-		"totalLoad" = lastused_equip + lastused_light + lastused_environ,
+		"powerCellStatus" = powerNode.calculatedBatteryStoredEnergy /powerNode.setBatteryMaxCapacity,
+		"chargeMode" = "Feature Removed",
+		"chargingStatus" = powerNode.setBatteryChargeRate==0 ? 0 : 1,
+		"totalLoad" = powerNode.calculatedCurrentBatteryDistargeRate,
 		"coverLocked" = coverlocked,
 		"siliconUser" = istype(user, /mob/living/silicon),
 		"malfStatus" = get_malf_status(user),
@@ -782,7 +790,7 @@
 		ui.set_auto_update(1)
 
 /obj/machinery/power/apc/proc/report()
-	return "[area.name] : [equipment]/[lighting]/[environ] ([lastused_equip+lastused_light+lastused_environ]) : [cell? cell.percent() : "N/C"] ([charging])"
+	return "[area.name] : [equipment]/[lighting]/[environ] ([lastused_equip+lastused_light+lastused_environ]) : [powerNode.setHasBattery == 1 ? powerNode.calculatedBatteryStoredEnergy / powerNode.setBatteryMaxCapacity : "N/C"] ([charging])"
 
 /obj/machinery/power/apc/proc/update()
 	if(operating && !shorted)
@@ -1006,10 +1014,12 @@
 	if(!src.malfhack && src.z == 1)
 		if(prob(3))
 			src.locked = 1
-			if (src.cell.charge > 0)
+			if (powerNode.calculatedBatteryStoredEnergy > 0)
 //				world << "\red blew APC in [src.loc.loc]"
-				src.cell.charge = 0
-				cell.corrupt()
+				powerNode.calculatedBatteryStoredEnergy = 0
+
+				//Folix: corrupt cell logic? Add the emp_act logic here. needs more review
+				//cell.corrupt()
 				src.malfhack = 1
 				update_icon()
 				var/datum/effect/effect/system/harmless_smoke_spread/smoke = new /datum/effect/effect/system/harmless_smoke_spread()
@@ -1229,44 +1239,21 @@ obj/machinery/power/apc/proc/autoset(var/val, var/on)
 
 // damage and destruction acts
 /obj/machinery/power/apc/emp_act(severity)
-	if(cell)
-		cell.emp_act(severity)
-	if(occupier)
-		occupier.emp_act(severity)
-	lighting = 0
-	equipment = 0
-	environ = 0
+	powerUtils.emp_act(powerNode,severity)
+
+
+	//Folix: don't know what this old logic is spawing
 	spawn(600)
 		equipment = 3
 		environ = 3
 	..()
 
 /obj/machinery/power/apc/ex_act(severity)
-
-	switch(severity)
-		if(1.0)
-			//set_broken() //now Del() do what we need
-			if (cell)
-				cell.ex_act(1.0) // more lags woohoo
-			qdel(src)
-			return
-		if(2.0)
-			if (prob(50))
-				set_broken()
-				if (cell && prob(50))
-					cell.ex_act(2.0)
-		if(3.0)
-			if (prob(25))
-				set_broken()
-				if (cell && prob(25))
-					cell.ex_act(3.0)
+	powerUtils.emp_act(powerNode,severity)
 	return
 
 /obj/machinery/power/apc/blob_act()
-	if (prob(75))
-		set_broken()
-		if (cell && prob(5))
-			cell.blob_act()
+	powerUtils.blob_act(powerNode)
 
 /obj/machinery/power/apc/disconnect_terminal()
 	if(terminal)
@@ -1288,6 +1275,9 @@ obj/machinery/power/apc/proc/autoset(var/val, var/on)
 // overload all the lights in this APC area
 
 /obj/machinery/power/apc/proc/overload_lighting()
+
+
+/*
 	if(/* !get_connection() || */ !operating || shorted)
 		return
 	if( cell && cell.charge>=20)
@@ -1298,6 +1288,9 @@ obj/machinery/power/apc/proc/autoset(var/val, var/on)
 					L.on = 1
 					L.broken()
 					sleep(1)
+*/
+
+
 
 /obj/machinery/power/apc/proc/shock(mob/user, prb)
 	if(!prob(prb))
@@ -1312,8 +1305,10 @@ obj/machinery/power/apc/proc/autoset(var/val, var/on)
 	else
 		return 0
 
+
+//Folix: What does this do?
 /obj/machinery/power/apc/proc/setsubsystem(val)
-	if(cell && cell.charge > 0)
+	if(powerNode.setHasBattery == 1 && powerNode.calculatedBatteryStoredEnergy > 0)
 		return (val==1) ? 0 : val
 	else if(val == 3)
 		return 1

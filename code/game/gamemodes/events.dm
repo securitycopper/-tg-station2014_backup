@@ -71,6 +71,8 @@
 */
 
 /proc/power_failure()
+
+/*
 	priority_announce("Abnormal activity detected in [station_name()]'s powernet. As a precautionary measure, the station's power will be shut off for an indeterminate duration.", "Critical Power Failure", 'sound/AI/poweroff.ogg')
 	for(var/obj/machinery/power/smes/S in world)
 		if(istype(get_area(S), /area/turret_protected) || S.z != 1)
@@ -103,7 +105,7 @@
 		A.power_change()
 
 	for(var/obj/machinery/power/apc/C in world)
-		if(C.cell && C.z == 1)
+		if(C.powerNode.setHasBattery ==1 && C.z == 1)
 			var/area/A = get_area(C)
 
 			var/skip = 0
@@ -114,13 +116,15 @@
 			if(skip) continue
 
 			C.cell.charge = 0
+*/
+
 
 /proc/power_restore()
 
 	priority_announce("Power has been restored to [station_name()]. We apologize for the inconvenience.", "Power Systems Nominal", 'sound/AI/poweron.ogg')
 	for(var/obj/machinery/power/apc/C in world)
-		if(C.cell && C.z == 1)
-			C.cell.charge = C.cell.maxcharge
+		if(C.powerNode.setHasBattery && C.z == 1)
+			C.powerNode.calculatedBatteryStoredEnergy = C.powerNode.setBatteryMaxCapacity
 	for(var/obj/machinery/power/smes/S in world)
 		if(S.z != 1)
 			continue
