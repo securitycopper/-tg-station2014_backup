@@ -25,9 +25,19 @@
 	*/
 
 	anchored = 1.0
-	use_power = 1
-	idle_power_usage = 2
-	active_power_usage = 4
+
+/obj/machinery/door_control/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_DOORCONTROL_IDLE_LOAD
+
+
+
+	powerNode.update(loc)
+
+
 
 /obj/machinery/door_control/attack_ai(mob/user as mob)
 	if(wires & 2)
@@ -71,7 +81,7 @@
 		flick("doorctrl-denied",src)
 		return
 
-	use_power(5)
+
 	icon_state = "doorctrl1"
 	add_fingerprint(user)
 
@@ -138,7 +148,6 @@
 		return
 	add_fingerprint(user)
 
-	use_power(5)
 
 	active = 1
 	icon_state = "launcheract"

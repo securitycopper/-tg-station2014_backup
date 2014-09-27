@@ -286,7 +286,7 @@ won't update every console in existence) but it's more of a hassle to do. Also, 
 								if(!(I in linked_destroy.component_parts))
 									qdel(I)
 									linked_destroy.icon_state = "d_analyzer"
-						use_power(250)
+						powerUtils.use_power(powerNode,POWERNODECONSTS_RDCONSOLE_ACTIVE_LOAD,POWERNODECONSTS_RDCONSOLE_ACTIVE_TICKS)
 						updateUsrDialog()
 
 	else if(href_list["lock"]) //Lock the console from use by anyone without tox access.
@@ -343,12 +343,12 @@ won't update every console in existence) but it's more of a hassle to do. Also, 
 					being_built = D
 					break
 			if(being_built)
-				var/power = 2000
+				var/power = POWERNODECONSTS_RDCONSOLE_ACTIVE_LOAD
 				var/amount=text2num(href_list["amount"])
 				amount = max(1, min(10, amount))
 				for(var/M in being_built.materials)
 					power += round(being_built.materials[M] * amount / 5)
-				power = max(2000, power)
+				power = max(POWERNODECONSTS_RDCONSOLE_ACTIVE_LOAD, power)
 				screen = 0.3
 				if(linked_lathe.busy)
 					g2g = 0
@@ -362,7 +362,7 @@ won't update every console in existence) but it's more of a hassle to do. Also, 
 				if (g2g) //If input is incorrect, nothing happens
 					linked_lathe.busy = 1
 					flick("protolathe_n",linked_lathe)
-					use_power(power)
+					powerUtils.use_power(power,POWERNODECONSTS_RDCONSOLE_ACTIVE_TICKS)
 
 					for(var/M in being_built.materials)
 						if(!linked_lathe.check_mat(being_built, M))
@@ -423,10 +423,10 @@ won't update every console in existence) but it's more of a hassle to do. Also, 
 					being_built = D
 					break
 			if(being_built)
-				var/power = 2000
+				var/power = POWERNODECONSTS_RDCONSOLE_ACTIVE_LOAD
 				for(var/M in being_built.materials)
 					power += round(being_built.materials[M] / 5)
-				power = max(2000, power)
+				power = max(POWERNODECONSTS_RDCONSOLE_ACTIVE_LOAD, power)
 				screen = 0.4
 				if (linked_imprinter.busy)
 					g2g = 0
@@ -437,7 +437,8 @@ won't update every console in existence) but it's more of a hassle to do. Also, 
 				if (g2g) //Again, if input is wrong, do nothing
 					linked_imprinter.busy = 1
 					flick("circuit_imprinter_ani",linked_imprinter)
-					use_power(power)
+
+					powerUtils.use_power(powerNode,power,POWERNODECONSTS_RDCONSOLE_ACTIVE_TICKS)
 
 					for(var/M in being_built.materials)
 						if(!linked_imprinter.check_mat(being_built, M))

@@ -11,9 +11,7 @@
 	layer = 3
 	invisibility = INVISIBILITY_LEVEL_TWO	//the turret is invisible if it's inside its cover
 	density = 1
-	use_power = 1				//this turret uses and requires power
-	idle_power_usage = 50		//when inactive, this turret takes up constant 50 Equipment power
-	active_power_usage = 300	//when active, this turret takes up constant 300 Equipment power
+
 	req_access = list(access_security)
 	power_channel = EQUIP	//drains power from the EQUIPMENT channel
 
@@ -27,7 +25,7 @@
 	var/gun_charge = 0		//the charge of the gun inserted
 	var/projectile = null	//holder for bullettype
 	var/eprojectile = null	//holder for the shot when emagged
-	var/reqpower = 500		//holder for power needed
+
 	var/sound = null		//So the taser can have sound
 	var/iconholder = null	//holder for the icon_state. 1 for orange sprite, null for blue.
 	var/egun = null			//holder to handle certain guns switching bullettypes
@@ -52,6 +50,15 @@
 
 /obj/machinery/porta_turret/New()
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_PORTABLE_TURRET_IDLE_LOAD
+
+	powerNode.update(loc)
+
 	icon_state = "[lasercolor]grey_target_prism"
 	//Sets up a spark system
 	spark_system = new /datum/effect/effect/system/spark_spread
@@ -604,11 +611,11 @@
 	else
 		A = new projectile(loc)
 	A.original = target.loc
-	if(!emagged)
-		use_power(reqpower)
-	else
-		use_power(reqpower * 2)
-		//Shooting Code:
+	var/reqpower = POWERNODECONSTS_PORTABLE_TURRET_ACTIVE_LOAD
+	if(emagged)
+		reqpower = reqpower * 2
+	powerUtils.use_power(powerNode,reqpower,POWERNODECONSTS_PORTABLE_TURRET_ACTIVE_TICKS)
+
 	A.current = T
 	A.yo = U.y - T.y
 	A.xo = U.x - T.x

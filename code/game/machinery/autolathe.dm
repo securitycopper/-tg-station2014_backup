@@ -96,6 +96,18 @@ var/global/list/autolathe_recipes_hidden = list( \
 
 /obj/machinery/autolathe/New()
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_AUTOLATHE_IDLE_LOAD
+	powerNode.setCurrentLoad = 0
+
+
+	powerNode.update(loc)
+
+
 	component_parts = list()
 	component_parts += new /obj/item/weapon/circuitboard/autolathe(null)
 	component_parts += new /obj/item/weapon/stock_parts/matter_bin(null)
@@ -175,7 +187,8 @@ var/global/list/autolathe_recipes_hidden = list( \
 		O.loc = src
 	icon_state = "autolathe"
 	busy = 1
-	use_power(max(1000, (m_amt+g_amt)*amount/10))
+	var/power = max(1000, (m_amt+g_amt)*amount/10)
+	powerUtils.use_power(powerNode,power,POWERNODECONSTS_AUTOLATHE_ACTIVE_TICKS)
 	src.m_amount += m_amt * amount
 	src.g_amount += g_amt * amount
 	user << "You insert [amount] sheet[amount>1 ? "s" : ""] to the autolathe."
@@ -199,7 +212,7 @@ var/global/list/autolathe_recipes_hidden = list( \
 		if(href_list["make"])
 			var/coeff = 2 ** prod_coeff
 			var/turf/T = get_step(src.loc, get_dir(src,usr))
-				
+
 			// critical exploit fix start -walter0o
 			var/obj/item/template = null
 			var/attempting_to_build = locate(href_list["make"])
@@ -211,38 +224,37 @@ var/global/list/autolathe_recipes_hidden = list( \
 				template = attempting_to_build
 
 			else // somebody is trying to exploit, alert admins -walter0o
-				
+
 				var/turf/LOC = get_turf(usr)
 				message_admins("[key_name_admin(usr)] tried to exploit an autolathe to duplicate <a href='?_src_=vars;Vars=\ref[attempting_to_build]'>[attempting_to_build]</a> ! ([LOC ? "<a href='?_src_=holder;adminplayerobservecoodjump=1;X=[LOC.x];Y=[LOC.y];Z=[LOC.z]'>JMP</a>" : "null"])", 0)
-				log_admin("EXPLOIT : [key_name(usr)] tried to exploit an autolathe to duplicate [attempting_to_build] !")		
+				log_admin("EXPLOIT : [key_name(usr)] tried to exploit an autolathe to duplicate [attempting_to_build] !")
 				return
 
 			// now check for legit multiplier, also only stacks should pass with one to prevent raw-materials-manipulation -walter0o
 
 			var/multiplier = text2num(href_list["multiplier"])
-			
+
 			if (!multiplier) multiplier = 1
 			var/max_multiplier = 1
-			
+
 			if(istype(template, /obj/item/stack)) // stacks are the only items which can have a multiplier higher than 1 -walter0o
 				var/obj/item/stack/S = template
 				max_multiplier = min(S.max_amount, S.m_amt?round(m_amount/S.m_amt):INFINITY, S.g_amt?round(g_amount/S.g_amt):INFINITY)  // pasta from regular_win() to make sure the numbers match -walter0o
 
 			if( (multiplier > max_multiplier) || (multiplier <= 0) ) // somebody is trying to exploit, alert admins-walter0o
-					
+
 				var/turf/LOC = get_turf(usr)
 				message_admins("[key_name_admin(usr)] tried to exploit an autolathe with multiplier set to <u>[multiplier]</u> on <u>[template]</u>  ! ([LOC ? "<a href='?_src_=holder;adminplayerobservecoodjump=1;X=[LOC.x];Y=[LOC.y];Z=[LOC.z]'>JMP</a>" : "null"])" , 0)
 				log_admin("EXPLOIT : [key_name(usr)] tried to exploit an autolathe with multiplier set to [multiplier] on [template]  !")
 				return
 
-			var/power = max(2000, (template.m_amt+template.g_amt)*multiplier/5)
+			var/power = max(POWERNODECONSTS_AUTOLATHE_ACTIVE_LOAD, (template.m_amt+template.g_amt)*multiplier/5)
 			if(src.m_amount >= template.m_amt*multiplier/coeff && src.g_amount >= template.g_amt*multiplier/coeff)
 				busy = 1
-				use_power(power)
+				powerUtils.use_power(powerNode,power,POWERNODECONSTS_AUTOLATHE_ACTIVE_TICKS)
 				icon_state = "autolathe"
 				flick("autolathe_n",src)
 				spawn(32/coeff)
-					use_power(power)
 					if(istype(template, /obj/item/stack))
 						src.m_amount -= template.m_amt*multiplier
 						src.g_amount -= template.g_amt*multiplier

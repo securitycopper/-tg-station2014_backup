@@ -50,6 +50,7 @@
 	powerNode.setBatteryChargeRate=50000
 	powerNode.setBatteryMaxDischargeRate=200000
 
+	powerNode.setDrawPowerFromArea = 0
 	powerNode.update()
 
 	if(charge!=0)

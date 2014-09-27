@@ -31,6 +31,16 @@
 
 /obj/machinery/computer/telescience/New()
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_TELESCICOMPUTER_IDLE_LOAD
+	powerNode.setCurrentLoad = 0
+
+
+	powerNode.update(loc)
 	recalibrate()
 
 /obj/machinery/computer/telescience/Destroy()
@@ -207,7 +217,7 @@
 			teles_left -= 1
 
 			// use a lot of power
-			use_power(power * 10)
+			powerUtils.use_power(powerNode,POWERNODECONSTS_TELESCICOMPUTER_ACTIVE_LOAD,POWERNODECONSTS_TELESCICOMPUTER_ACTIVE_TICKS)
 
 			var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
 			s.set_up(5, 1, get_turf(telepad))

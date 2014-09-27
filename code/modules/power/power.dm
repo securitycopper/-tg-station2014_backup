@@ -45,6 +45,7 @@
 		chan = power_channel
 	return A.master.powered(chan)	// return power status of the area
 
+/*
 // increment the power usage stats for an area
 /obj/machinery/proc/use_power(var/amount, var/chan = -1) // defaults to power_channel
 	var/area/A = get_area(src)		// make sure it's in an area
@@ -62,6 +63,8 @@
 
 /obj/machinery/proc/removeStaticPower(value, powerchannel)
 	addStaticPower(-value, powerchannel)
+*/
+
 
 /obj/machinery/proc/power_change()		// called whenever the power settings of the containing area change
 										// by default, check equipment channel & set flag
@@ -209,95 +212,6 @@
 	world << "Powergrid created with: [powerNetworkControllerProcessingLoopList.len] sections"
 
 //remove the old powernet and replace it with a new one throughout the network.
-/*
-	Propagate network along wires
-
-
-*/
-/proc/propagate_network(var/obj/structure/cable/powerNodeSpaceWithoutNetowrk
-, var/datum/wire_network/toPropagate, var/datum/wire_network/toReplace)
-	//world.log << "propagating new network"
-
-
-	//This contains a list of objects that have a parentNode var
-	//TODO Folix: replace this with normal list after this is working
-
-	var/datum/datastructures/LinkedList/toProcessCable = new /datum/datastructures/LinkedList()
-
-//	var/list/toProcessCable = list()
-
-	toProcessCable.push(powerNodeSpaceWithoutNetowrk);
-
-	//Propagate along wires
-	while(toProcessCable.size >0)
-		//Pop first element
-		var/obj/structure/cable/currentNode = toProcessCable.pop()
-		if(currentNode.parentNetwork==toReplace)
-			currentNode.parentNetwork = toPropagate
-
-			//This gets adjacent dables and adds them to the queue
-			var/cdir
-			var/turf/T
-			for(var/card in cardinal)
-				T = get_step(currentNode.loc,card)
-				cdir = get_dir(T,currentNode.loc)
-				for(var/obj/structure/cable/C in T)
-					if(C.d1 == cdir || C.d2 == cdir)
-						toProcessCable.push(C)
-
-			//Attach any machines if found on this space
-			for(var/obj/machinery/machine in currentNode.loc)
-
-				var/datum/power/PowerNode/machinepowerNode = machine.powerNode
-
-
-				//Terminal Logic
-				if(istype(machine,/obj/machinery/power/terminal))
-					var/obj/machinery/power/terminal/terminal = machine
-					if(terminal.master!=null)
-						//Now we either will set the child or parent network
-
-						//TODO Folix: add logic to remove from network if one exists
-						if(terminal.master.powerNode.setParentNetworkAttachesOnThisSpace==1)
-							if(terminal.master.powerNode.parentNetwork == toReplace)
-								terminal.master.powerNode.parentNetwork = toPropagate
-
-						else
-							if(terminal.master.powerNode.childNetwork == toReplace)
-								terminal.master.powerNode.childNetwork = toPropagate
-					toPropagate.add(terminal.master.powerNode)
-				//Normal machine logic
-				if(machinepowerNode!=null && machine.anchored )
-					if(machinepowerNode.setParentNetworkAttachesOnThisSpace == 1 && machinepowerNode.parentNetwork == toReplace)
-
-						//remove machine from existing network and add to new one
-						var/datum/wire_network/machineparentNetwork = machinepowerNode.parentNetwork
-						if(machineparentNetwork!=null)
-						 	//The machine is currently atached to a network, remove it
-							machineparentNetwork.remove(machinepowerNode)
-
-						//now add machine to new network if one exists. it should, but to suppor the off case where one
-						// would want to propagate null for what ever reason. I'll put a check in.
-						if(toPropagate!=null)
-							machinepowerNode.parentNetwork = toPropagate
-							world << "power connecting machine [machinepowerNode.setName]"
-							toPropagate.add(machinepowerNode)
-
-					if(machinepowerNode.setParentNetworkAttachesOnThisSpace == 0 && machinepowerNode.childNetwork == toReplace)
-
-						//remove machine from existing network and add to new one
-						var/datum/wire_network/machinechildNetwork = machinepowerNode.childNetwork
-						if(machinechildNetwork!=null)
-						 	//The machine is currently atached to a network, remove it
-							machinechildNetwork.remove(machinepowerNode)
-
-						//now add machine to new network if one exists. it should, but to suppor the off case where one
-						// would want to propagate null for what ever reason. I'll put a check in.
-						if(toPropagate!=null)
-							machinepowerNode.childNetwork = toPropagate
-							world << "power connecting machine [machinepowerNode.setName]"
-							toPropagate.add(machinepowerNode)
-
 
 
 //Merge two powernets, the bigger (in cable length term) absorbing the other
@@ -522,8 +436,4 @@
 			return C
 	return null
 
-/area/proc/get_apc()
-	for(var/area/RA in src.related)
-		var/obj/machinery/power/apc/FINDME = locate() in RA
-		if (FINDME)
-			return FINDME
+/

@@ -76,6 +76,14 @@
 	spark_system = new /datum/effect/effect/system/spark_spread
 	spark_system.set_up(5, 0, src)
 	spark_system.attach(src)
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_TURRETS_IDLE_LOAD
+	powerNode.update(loc)
+
 //	targets = new
 	..()
 	src.cover = new /obj/machinery/turretcover(src.loc)
@@ -228,10 +236,10 @@
 			if(6)
 				A = new /obj/item/projectile/lasertag/redtag( loc )
 		A.original = target
-		use_power(500)
+		powerUtils.use_power(powerNode,POWERNODECONSTS_TURRETS_ACTIVE_LOAD_SHOT,POWERNODECONSTS_TURRETS_ACTIVE_TICKS)
 	else
 		A = new /obj/item/projectile/energy/electrode( loc )
-		use_power(200)
+		powerUtils.use_power(powerNode,POWERNODECONSTS_TURRETS_ACTIVE_LOAD_STUN,POWERNODECONSTS_TURRETS_ACTIVE_TICKS)
 	A.current = T
 	A.yo = U.y - T.y
 	A.xo = U.x - T.x

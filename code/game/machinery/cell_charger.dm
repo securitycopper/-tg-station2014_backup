@@ -11,6 +11,20 @@
 	var/obj/item/weapon/stock_parts/cell/charging = null
 	var/chargelevel = -1
 
+
+/obj/machinery/cell_charger/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_CELLCHARGER_IDLE_LOAD
+
+
+
+
+	powerNode.update()
+
+
 /obj/machinery/cell_charger/proc/updateicon()
 	icon_state = "ccharger[charging ? 1 : 0]"
 
@@ -110,7 +124,8 @@
 	if(charging.percent() >= 100)
 		return
 
-	use_power(200)		//this used to use CELLRATE, but CELLRATE is fucking awful. feel free to fix this properly!
+		//this used to use CELLRATE, but CELLRATE is fucking awful. feel free to fix this properly!
+	powerUtils.use_power(powerNode,POWERNODECONSTS_CELLCHARGER_ACTIVE_LOAD,POWERNODECONSTS_CELLCHARGER_ACTIVE_TICKS)
 	charging.give(175)	//inefficiency.
 
 	updateicon()

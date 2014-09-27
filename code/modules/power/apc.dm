@@ -117,37 +117,8 @@
 	if(terminal)
 		terminal.connect_to_network()
 
-/obj/machinery/power/apc/New(turf/loc, var/ndir, var/building=0)
+/obj/machinery/power/apc/New(turf/turfloc, var/ndir, var/building=0)
 	..()
-
-
-	powerNode = new /datum/power/PowerNode()
-	//Power Node Behavior
-	powerNode.setName = name
-	powerNode.setCanAutoStartToIdle = 1
-	powerNode.setIdleLoad = 0
-	powerNode.setCurrentLoad = 0
-
-	//for solar, min and max will match
-	powerNode.setMaxPotentialSupply = 0
-	powerNode.setCurrentSupply = 0
-
-	//Battery options
-	powerNode.calculatedBatteryStoredEnergy = 90
-
-
-
-	powerNode.setHasBattery=1
-	powerNode.setBatteryMaxCapacity=2500
-	powerNode.setBatteryChargeRate=2500
-
-	powerNode.update()
-
-
-	if(cell_type!=0)
-		powerNode.setBatteryMaxCapacity=cell_type
-	if(charge!=0)
-		powerNode.calculatedBatteryStoredEnergy = charge
 
 
 
@@ -176,6 +147,46 @@
 		src.update_icon()
 		spawn(5)
 			src.update()
+
+
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = 0
+	powerNode.setCurrentLoad = 0
+
+	//for solar, min and max will match
+	powerNode.setMaxPotentialSupply = 0
+	powerNode.setCurrentSupply = 0
+
+	//Battery options
+	powerNode.calculatedBatteryStoredEnergy = 2500
+
+
+
+	powerNode.setHasBattery=1
+	powerNode.setBatteryMaxCapacity=2500
+	powerNode.setBatteryChargeRate=2500
+
+
+	powerNode.setDrawPowerFromArea = 0
+
+
+	var/datum/wire_network/areaNetwork  = area.getWireNetwork()
+
+	powerNode.childNetwork = areaNetwork
+	areaNetwork.add(powerNode)
+	powerNode.update()
+
+
+	if(cell_type!=0)
+		powerNode.setBatteryMaxCapacity=cell_type
+	if(charge!=0)
+		powerNode.calculatedBatteryStoredEnergy = charge
+
+
 
 /obj/machinery/power/apc/Destroy()
 	if(malfai && operating)

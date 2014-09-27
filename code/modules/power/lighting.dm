@@ -195,13 +195,11 @@
 	desc = "A lighting fixture."
 	anchored = 1
 	layer = 5  					// They were appearing under mobs which is a little weird - Ostaf
-	use_power = 2
-	idle_power_usage = 2
-	active_power_usage = 20
-	power_channel = LIGHT //Lights are calc'd via area so they dont need to be in the machine list
-	var/on = 0					// 1 if on, 0 if off
-	var/on_gs = 0
-	var/static_power_used = 0
+
+	//power_channel = LIGHT //Lights are calc'd via area so they dont need to be in the machine list
+	//var/on = 0					// 1 if on, 0 if off
+	//var/on_gs = 0
+//	var/static_power_used = 0
 	var/brightness = 8			// luminosity when on, also used in power calculation
 	var/status = LIGHT_OK		// LIGHT_OK, _EMPTY, _BURNED or _BROKEN
 	var/flickering = 0
@@ -241,6 +239,22 @@
 // create a new lighting fixture
 /obj/machinery/light/New()
 	..()
+
+
+	powerNode = new /datum/power/PowerNode()
+	powerNode.setCallBackEvents = src
+
+	//Power Node Behavior
+	powerNode.setName = "obj/machinery/light"
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_LIGHTING_IDLE_LOAD
+
+	//var /area/area = get_area(src)
+	//var /datum/wire_network/areaNetwork = area.getWireNetwork()
+	//world << "adding new light to [areaNetwork.setName]"
+	powerNode.update(loc.loc)
+
+
 	spawn(2)
 		switch(fitting)
 			if("tube")
@@ -255,9 +269,9 @@
 			update(0)
 
 /obj/machinery/light/Destroy()
-	var/area/A = get_area(src)
-	if(A)
-		on = 0
+//	var//A = get_area(src)
+//	if(A)
+//		on = 0
 //		A.update_lights()
 	..()
 
@@ -265,7 +279,7 @@
 
 	switch(status)		// set icon_states
 		if(LIGHT_OK)
-			icon_state = "[base_state][on]"
+			icon_state = "[base_state][powerNode.isOn]"
 		if(LIGHT_EMPTY)
 			icon_state = "[base_state]-empty"
 			on = 0
@@ -277,15 +291,27 @@
 			on = 0
 	return
 
+/obj/machinery/light/power_onChangeEvent(var/powerEvent)
+	switch(powerEvent)
+		if(POWEREVENT_ON)
+			on = 1
+			SetLuminosity(brightness)
+
+		if(POWEREVENT_OFF)
+			on = 0
+			SetLuminosity(0)
+
+	update()
+
 // update the icon_state and luminosity of the light depending on its state
 /obj/machinery/light/proc/update(var/trigger = 1)
 
 	update_icon()
-	if(on)
+	if(powerNode.isOn)
 		if(luminosity != brightness)
 			switchcount++
 			if(rigged)
-				if(status == LIGHT_OK && trigger)
+				if(status == LIGHT_OK)
 					explode()
 			else if( prob( min(60, switchcount*switchcount*0.01) ) )
 				if(status == LIGHT_OK && trigger)
@@ -294,26 +320,27 @@
 					on = 0
 					SetLuminosity(0)
 			else
-				use_power = 2
+
 				SetLuminosity(brightness)
 	else
-		use_power = 1
+
 		SetLuminosity(0)
 
 	active_power_usage = (luminosity * 10)
-	if(on != on_gs)
-		on_gs = on
-		if(on)
-			static_power_used = luminosity * 20 //20W per unit luminosity
-			addStaticPower(static_power_used, STATIC_LIGHT)
-		else
-			removeStaticPower(static_power_used, STATIC_LIGHT)
+
+	if(powerNode.isOn)
+		powerNode.setCurrentLoad = luminosity * 20 //20W per unit luminosity
+
+	else
+		powerNode.setCurrentLoad = 0
+
+	powerNode.update(loc)
 
 
 // attempt to set the light's on/off status
 // will not switch on if broken/burned/empty
 /obj/machinery/light/proc/seton(var/s)
-	on = (s && status == LIGHT_OK)
+	on = powerNode.isOn
 	update()
 
 // examine verb
@@ -429,8 +456,7 @@
 // returns whether this light has power
 // true if area has power and lightswitch is on
 /obj/machinery/light/proc/has_power()
-	var/area/A = src.loc.loc
-	return A.master.lightswitch && A.master.power_light
+	return powerNode.isOn
 
 /obj/machinery/light/proc/flicker(var/amount = rand(10, 20))
 	if(flickering) return
@@ -442,7 +468,7 @@
 				on = !on
 				update(0)
 				sleep(rand(5, 15))
-			on = (status == LIGHT_OK)
+			on = (status == LIGHT_OK && powerNode.isOn)
 			update(0)
 		flickering = 0
 
@@ -600,13 +626,16 @@
 	if(prob(75))
 		broken()
 
-
+/*
 
 // called when area power state changes
 /obj/machinery/light/power_change()
-	var/area/A = get_area(src)
-	A = A.master
-	seton(A.lightswitch && A.power_light)
+	//fix()
+//	world << "power change light"
+	seton(powerNode.isOn)
+	SetLuminosity(brightness)
+
+*/
 
 // called when on fire
 

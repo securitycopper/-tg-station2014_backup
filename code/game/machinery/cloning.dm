@@ -25,6 +25,15 @@
 
 /obj/machinery/clonepod/New()
 	..()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_CLONING_IDLE_LOAD
+
+
+
+	powerNode.update(loc)
 	component_parts = list()
 	component_parts += new /obj/item/weapon/circuitboard/clonepod(null)
 	component_parts += new /obj/item/weapon/stock_parts/scanning_module(null)
@@ -79,6 +88,9 @@
 //Disk stuff.
 /obj/item/weapon/disk/data/New()
 	..()
+
+
+
 	icon_state = "datadisk[pick(0,1,2)]"
 
 /obj/item/weapon/disk/data/attack_self(mob/user as mob)
@@ -213,7 +225,7 @@
 //Grow clones to maturity then kick them out.  FREELOADERS
 /obj/machinery/clonepod/process()
 
-	if(stat & NOPOWER) //Autoeject if power is lost
+	if(stat & NOPOWER || powerNode.isOn == 0) //Autoeject if power is lost
 		if (src.occupant)
 			src.locked = 0
 			src.go_out()
@@ -239,7 +251,7 @@
 			if (src.occupant.reagents.get_reagent_amount("inaprovaline") < 30)
 				src.occupant.reagents.add_reagent("inaprovaline", 60)
 
-			use_power(7500) //This might need tweaking.
+			powerUtils.use_power(powerNode,POWERNODECONSTS_CLONING_ACTIVE_LOAD,POWERNODECONSTS_CLONING_ACTIVE_TICKS)
 			return
 
 		else if((src.occupant.cloneloss <= (100 - src.heal_level)) && (!src.eject_wait))
@@ -254,7 +266,6 @@
 			src.locked = 0
 		if (!src.mess && !panel_open)
 			icon_state = "pod_0"
-		use_power(200)
 		return
 
 	return

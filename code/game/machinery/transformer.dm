@@ -15,6 +15,14 @@
 /obj/machinery/transformer/New()
 	// On us
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_TRANSFORMER_IDLE_LOAD
+	powerNode.update(loc)
+
 	new /obj/machinery/conveyor/auto(loc, WEST)
 
 /obj/machinery/transformer/power_change()
@@ -74,7 +82,7 @@
 	// Sleep for a couple of ticks to allow the human to see the pain
 	sleep(5)
 
-	use_power(5000) // Use a lot of power.
+	powerUtils.use_power(powerNode,POWERNODECONSTS_TRANSFORMER_ACTIVE_LOAD,POWERNODECONSTS_TRANSFORMER_ACTIVE_TICKS)
 	var/mob/living/silicon/robot/R = H.Robotize(1) // Delete the items or they'll all pile up in a single tile and lag
 
 	R.cell.maxcharge = robot_cell_charge

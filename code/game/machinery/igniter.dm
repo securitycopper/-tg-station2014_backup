@@ -6,9 +6,7 @@
 	var/id = null
 	var/on = 1.0
 	anchored = 1.0
-	use_power = 1
-	idle_power_usage = 2
-	active_power_usage = 4
+
 
 /obj/machinery/igniter/attack_ai(mob/user as mob)
 	return src.attack_hand(user)
@@ -21,7 +19,6 @@
 		return
 	add_fingerprint(user)
 
-	use_power(50)
 	src.on = !( src.on )
 	src.icon_state = text("igniter[]", src.on)
 	return
@@ -35,6 +32,14 @@
 
 /obj/machinery/igniter/New()
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_IGNITER_CONSTANT_LOAD
+	powerNode.update(loc)
+
 	icon_state = "igniter[on]"
 
 /obj/machinery/igniter/power_change()
@@ -57,6 +62,16 @@
 	anchored = 1
 
 /obj/machinery/sparker/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_IGNITER_IDLE_LOAD
+
+
+	powerNode.update(loc)
+
+
 	..()
 
 /obj/machinery/sparker/power_change()
@@ -104,7 +119,7 @@
 	s.set_up(2, 1, src)
 	s.start()
 	src.last_spark = world.time
-	use_power(1000)
+	powerUtils.use_power(powerNode,POWERNODECONSTS_IGNITER_ACTIVE_LOAD,POWERNODECONSTS_IGNITER_ACTIVE_TICKS)
 	var/turf/location = src.loc
 	if (isturf(location))
 		location.hotspot_expose(1000,500,1)
@@ -133,7 +148,6 @@
 	if(active)
 		return
 
-	use_power(5)
 
 	active = 1
 	icon_state = "launcheract"
@@ -145,7 +159,7 @@
 
 	for(var/obj/machinery/igniter/M in world)
 		if(M.id == src.id)
-			use_power(50)
+			powerUtils.use_power(powerNode,POWERNODECONSTS_IGNITER_ACTIVE_LOAD_HAND_USE,POWERNODECONSTS_IGNITER_ACTIVE_TICKS)
 			M.on = !( M.on )
 			M.icon_state = text("igniter[]", M.on)
 

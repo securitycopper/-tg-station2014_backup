@@ -223,7 +223,7 @@
 /obj/machinery/teleport/hub/Bumped(M as mob|obj)
 	if(power_station && power_station.engaged && !panel_open)
 		teleport(M)
-		use_power(5000)
+		powerUtils.use_power(powerNode,POWERNODECONSTS_TELEPORTER_ACTIVE_LOAD,POWERNODECONSTS_TELEPORTER_ACTIVE_TICKS)
 	return
 
 /obj/machinery/teleport/hub/attackby(obj/item/W, mob/user)
@@ -359,7 +359,7 @@
 		return
 	if (teleporter_console.target)
 		src.engaged = !src.engaged
-		use_power(5000)
+		powerUtils.use_power(powerNode,POWERNODECONSTS_TELEPORTER_ACTIVE_LOAD,POWERNODECONSTS_TELEPORTER_ACTIVE_TICKS)
 		visible_message("<span class='notice'>Teleporter [engaged ? "" : "dis"]engaged!</span>")
 	else
 		visible_message("<span class='alert'>No target detected.</span>")

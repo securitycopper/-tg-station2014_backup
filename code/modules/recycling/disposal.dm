@@ -27,6 +27,12 @@
 	// find the attached trunk (if present) and init gas resvr.
 /obj/machinery/disposal/New()
 	..()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_PROTOLATHE_CONSTANT_LOAD
+	powerNode.update(loc)
 
 	trunk_check()
 
@@ -354,13 +360,11 @@
 	if(stat & NOPOWER)			// won't charge if no power
 		return
 
-	use_power(100)		// base power usage
 
 	if(mode != 1)		// if off or ready, no need to charge
 		return
 
-	// otherwise charge
-	use_power(500)		// charging power usage
+
 
 	var/atom/L = loc						// recharging from loc turf
 

@@ -116,6 +116,9 @@ Class Procs:
 	..()
 	machines += src
 
+
+
+
 /obj/machinery/Destroy()
 	machines.Remove(src)
 	if(occupant)
@@ -127,7 +130,8 @@ Class Procs:
 
 /obj/machinery/emp_act(severity)
 	if(use_power && stat == 0)
-		use_power(7500/severity)
+		powerUtils.emp_act(powerNode,severity)
+
 
 		var/obj/effect/overlay/pulse2 = new/obj/effect/overlay ( src.loc )
 		pulse2.icon = 'icons/effects/effects.dmi'
@@ -194,12 +198,7 @@ Class Procs:
 		qdel(src)
 
 /obj/machinery/proc/auto_use_power()
-	if(!powered(power_channel))
-		return 0
-	if(src.use_power == 1)
-		use_power(idle_power_usage,power_channel)
-	else if(src.use_power >= 2)
-		use_power(active_power_usage,power_channel)
+	//TODO: Folix remove this
 	return 1
 
 /obj/machinery/Topic(href, href_list)

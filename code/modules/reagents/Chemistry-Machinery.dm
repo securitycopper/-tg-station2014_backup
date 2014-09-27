@@ -47,6 +47,7 @@
 
 /obj/machinery/chem_dispenser/New()
 	..()
+
 	recharge()
 	dispensable_reagents = sortList(dispensable_reagents)
 

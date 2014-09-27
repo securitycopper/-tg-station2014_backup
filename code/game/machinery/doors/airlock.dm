@@ -47,6 +47,7 @@
 	var/hasShocked = 0 //Prevents multiple shocks from happening
 	var/autoclose = 1
 
+
 /obj/machinery/door/airlock/command
 	icon = 'icons/obj/doors/Doorcom.dmi'
 	doortype = 1
@@ -1018,7 +1019,8 @@ About the new airlock wires panel:
 	if(forced < 2)
 		if(emagged)
 			return 0
-		use_power(50)
+		powerUtils.use_power(powerNode,POWERNODECONSTS_AIRLOCK_ACTIVE_LOAD,POWERNODECONSTS_AIRLOCK_ACTIVE_TICKS)
+		//use_power(50)
 		if(istype(src, /obj/machinery/door/airlock/glass))
 			playsound(src.loc, 'sound/machines/windowdoor.ogg', 100, 1)
 		if(istype(src, /obj/machinery/door/airlock/clown))
@@ -1058,7 +1060,8 @@ About the new airlock wires panel:
 	if(forced < 2)
 		if(emagged)
 			return
-		use_power(50)
+
+		powerUtils.use_power(powerNode,POWERNODECONSTS_AIRLOCK_ACTIVE_LOAD,POWERNODECONSTS_AIRLOCK_ACTIVE_TICKS)
 		if(istype(src, /obj/machinery/door/airlock/glass))
 			playsound(src.loc, 'sound/machines/windowdoor.ogg', 30, 1)
 		if(istype(src, /obj/machinery/door/airlock/clown))
@@ -1077,6 +1080,17 @@ About the new airlock wires panel:
 
 /obj/machinery/door/airlock/New()
 	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_AIRLOCK_IDLE_LOAD
+
+	powerNode.update(loc)
+
+
+
 	wires = new(src)
 	if(src.closeOtherId != null)
 		spawn (5)

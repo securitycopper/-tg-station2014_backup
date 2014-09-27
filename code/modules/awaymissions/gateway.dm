@@ -49,12 +49,16 @@
 
 
 obj/machinery/gateway/centerstation/process()
-	if(stat & (NOPOWER))
-		if(active) toggleoff()
+	if(stat & (NOPOWER) && active && powerNode.isOn == 1)
+		powerNode.forceBrownOut()
+		toggleoff()
 		return
 
-	if(active)
-		use_power(5000)
+
+	if(active && powerNode.isOn == 0)
+		powerNode.setCurrentLoad = POWERNODECONSTS_GATEWAY_ACTIVE_LOAD
+		powerNode.update()
+
 
 
 /obj/machinery/gateway/centerstation/proc/detect()
@@ -128,7 +132,8 @@ obj/machinery/gateway/centerstation/process()
 		if(dest)
 			M.loc = dest.loc
 			M.dir = SOUTH
-			use_power(5000)
+			if(powerNode.setCurrentLoad != POWERNODECONSTS_GATEWAY_ACTIVE_LOAD)
+				powerUtils.use_power(powerNode,POWERNODECONSTS_GATEWAY_ACTIVE_LOAD,POWERNODECONSTS_GATEWAY_ACTIVE_TICKS)
 		return
 
 

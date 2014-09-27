@@ -136,6 +136,8 @@
 	if(src.contents.len == 0)
 		user << "\red The processor is empty."
 		return 1
+
+	var/usePower = 0;
 	for(var/O in src.contents)
 		var/datum/food_processor_process/P = select_recipe(O)
 		if (!P)
@@ -146,11 +148,23 @@
 			"You turn on \a [src].", \
 			"You hear a food processor")
 		playsound(src.loc, 'sound/machines/blender.ogg', 50, 1)
-		use_power(500)
+		usePower+=POWERNODECONSTS_PROCESSOR_ACTIVE_LOAD_PERCOMPONENT
 		sleep(P.time)
 		P.process(src.loc, O)
 		src.processing = 0
+	powerUtils.use_power(powerNode,usePower,POWERNODECONSTS_PROCESSOR_ACTIVE_TICKS)
+
 	src.visible_message("\blue \the [src] finished processing.")
+
+/obj/machinery/processor/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_PROCESSOR_IDLE_LOAD
+	powerNode.update(loc)
+
+
 
 /obj/machinery/processor/verb/eject()
 	set category = "Object"

@@ -23,6 +23,17 @@
 	density = 1
 
 /obj/machinery/flasher/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_FLASHER_IDLE_LOAD
+
+
+
+	powerNode.update(loc)
+
+
 	bulb = new /obj/item/device/flash(src)
 
 /obj/machinery/flasher/power_change()
@@ -74,7 +85,7 @@
 	playsound(src.loc, 'sound/weapons/flash.ogg', 100, 1)
 	flick("[base_state]_flash", src)
 	last_flash = world.time
-	use_power(1000)
+	powerUtils.use_power(powerNode,POWERNODECONSTS_FLASHER_ACTIVE_LOAD,POWERNODECONSTS_FLASHER_ACTIVE_TICKS)
 
 	for (var/mob/O in viewers(src, null))
 		if (get_dist(src, O) > src.range)
@@ -159,7 +170,6 @@
 	if(active)
 		return
 
-	use_power(5)
 
 	active = 1
 	icon_state = "launcheract"

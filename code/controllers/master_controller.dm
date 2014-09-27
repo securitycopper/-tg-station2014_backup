@@ -196,6 +196,16 @@ var/global/pipe_processing_killed = 0
 					#if defined(DEBUG_WIRENETWORK_PRINT_TREE)
 					//wireNetwork.debugDebugNetwork()
 					#endif
+
+				//TODO: Folix, refactor this into an efficent cicular queue that stops when iternation = size
+				for(var/datum/power/PowerNode/powerNodeActivePower in powerNetworkControllerPowerActivePowerTicks)
+					if( powerNodeActivePower.activePowerTicksRemaining == 0 )
+						powerNetworkControllerPowerActivePowerTicks-=powerNodeActivePower
+						powerNodeActivePower.setCurrentLoad = powerNodeActivePower.setIdleLoad
+					else
+						powerNodeActivePower.activePowerTicksRemaining--
+
+
 				//process_powernets()
 				powernets_cost = (world.timeofday - timer) / 10
 
@@ -277,8 +287,8 @@ var/global/pipe_processing_killed = 0
 			last_thing_processed = Machine.type
 			if(Machine.process() != PROCESS_KILL)
 				if(Machine)
-					if(Machine.use_power)
-						Machine.auto_use_power()
+//					if(Machine.use_power)
+//						Machine.auto_use_power()
 					i++
 					continue
 		machines.Cut(i,i+1)

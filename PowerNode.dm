@@ -2,10 +2,19 @@
 //Add define for % battery used
 //powerNode.calculatedBatteryStoredEnergy / powerNode.setBatteryMaxCapacity
 
+#define POWER_BACKWORDS_COMPATIBLITY
+
+//############# Power Events ##############
+#define POWEREVENT_ON 1
+#define POWEREVENT_OFF 2
+
+
+/obj/proc/power_onChangeEvent(var/powerEvent)
 
 
 /datum/power/PowerNode
 
+	var/obj/machinery/setCallBackEvents
 
 
 	/*
@@ -31,7 +40,11 @@
 	var/setCanAutoStartToIdle = 0
 	var/setIdleLoad = 0
 
+	//used with terminal logic
 	var/setParentNetworkAttachesOnThisSpace = 1
+
+	//Default uses apc power;. This takes piority
+	var/setDrawPowerFromArea = 1
 
 
 	//load used by this machine, Note: child network will be added to this to dirive total load
@@ -54,8 +67,8 @@
 	// because its values can change every tick
 	var/setHasBattery = 0
 	var/setBatteryMaxCapacity=0
-	var/setBatteryChargeRate=100
-	var/setBatteryMaxDischargeRate=9999999999 //For logic reasons, i always want battery discharge to be equal to current energy stored, but smes wants to set this value so am preserving it
+	var/setBatteryChargeRate=0
+	var/setBatteryMaxDischargeRate=0 //For logic reasons, i always want battery discharge to be equal to current energy stored, but smes wants to set this value so am preserving it
 
 
 
@@ -91,9 +104,17 @@
 	//var/isRunningOnBattery = 0
 
 
-	//This isn't to be called from anything else other then the PowerNodeUtils class
 
+	//##### private variables that only PowerNode Utils should access #####
 	var/list/storedObjects = list()
+
+	var/activePowerTicksRemaining = 0
+	//var/activePowerActiveUsage = 0
+
+	var/gridId = 0
+
+
+	var/oldIsOn = 0
 
 /datum/power/PowerNode/proc/prcessBattery()
 	/*
@@ -114,19 +135,34 @@
 	#endif
 
 
-	//Charging logic
-	if (runningOnGridOrBattery ==0)
-		var/chargeDiff = setBatteryChargeRate-calculatedCurrentBatteryDistargeRate
+	////Charging logic
+//	if (runningOnGridOrBattery ==0)
 
-		if(chargeDiff+calculatedBatteryStoredEnergy > setBatteryMaxCapacity)
-			calculatedBatteryStoredEnergy=setBatteryMaxCapacity
-		else
-			calculatedBatteryStoredEnergy+=chargeDiff
+	var/chargeDiff = 0
+
+	//If running on battery, see if we can now switch to running on grid
+	if(runningOnGridOrBattery == 1 && parentNetwork!=null && (parentNetwork.wireNetworkMaxPotentialSupply - parentNetwork.wireNetworkLoad)>=calculatedCurrentBatteryDistargeRate+setCurrentLoad)
+		isOn = 0
+		update()
+		runningOnGridOrBattery = 0
+		requestPowerOn()
 
 
 
-	if (runningOnGridOrBattery == 1)
-		calculatedBatteryStoredEnergy-=setCurrentLoad
+	//Grid
+	if(runningOnGridOrBattery == 0)
+		chargeDiff = setBatteryChargeRate-calculatedCurrentBatteryDistargeRate - setCurrentLoad
+	else
+		chargeDiff = -calculatedCurrentBatteryDistargeRate - setCurrentLoad
+
+
+	if(chargeDiff+calculatedBatteryStoredEnergy > setBatteryMaxCapacity)
+		calculatedBatteryStoredEnergy=setBatteryMaxCapacity
+		var/extraCharge = chargeDiff+calculatedBatteryStoredEnergy-setBatteryMaxCapacity
+		setBatteryChargeRate = max(setBatteryChargeRate-extraCharge,calculatedCurrentBatteryDistargeRate)
+		update()
+	else
+		calculatedBatteryStoredEnergy+=chargeDiff
 
 	if(	calculatedBatteryStoredEnergy<0)
 		//Out of power, notify child network
@@ -149,39 +185,6 @@
 
 
 
-/*  LOGIC HAS BEEN SIMPLIFIED TO ALWAYS PASS POWER THROUGH BATTERY, THIS MEANS WE WON'T HAVE TO CALCULATE NEW LOAD ON PARENT
-	if(runningOnGridOrBattery == 0)
-		#if defined(DEBUG_POWERNODE_BATTERY)
-		world<< "DEBUG: [setName] charging"
-		#endif
-		calculatedBatteryStoredEnergy+=setBatteryChargeRate-calculatedCurrentBatteryDistargeRate
-		//Running on Grid
-
-
-
-	else if (runningOnGridOrBattery == 1)
-		//Running on battery
-		var/newStoredEnergy = calculatedBatteryStoredEnergy - calculatedCurrentBatteryDistargeRate +
-		if(newStoredEnergy>0)
-			//Now we know we can at least run this node before calculating childNetwork
-			calculatedBatteryStoredEnergy=newStoredEnergy
-
-		else
-			calculatedBatteryStoredEnergy = 0
-
-
-
-		if(calculatedBatteryStoredEnergy==0)
-			//No more power, turn off child network supply and turn this powernode off
-
-			runningOnGridOrBattery = -1
-			isOn=0
-
-*/
-
-
-
-
 
 
 		//Now check to switch over to main power if able
@@ -197,14 +200,64 @@
 
 /datum/power/PowerNode/proc/Destory()
 	//TODO: write a destory block
+	isOn=0
+	update()
+	parentNetwork=null
+	setCallBackEvents=null
+	childNetwork=null
+
+/datum/power/PowerNode/proc/update(var/area/area)
+
+	/*
+	Connection logic for when no parent network
+	1. Connect to wire network if attached by wire
+	2. Connect to area if allowed to
+	*/
+
+	if(oldIsOn == 1 && isOn == 0)
+		// turn off power
+		oldIsOn = 0
+		setCurrentLoad = 0
+
+		if(parentNetwork!=null)
+			//remove supply and load from parent
+			parentNetwork.wireNetworkMaxPotentialSupply-= setMaxPotentialSupply
+			parentNetwork.wireNetworkCurrentSupply-=setCurrentSupply
+			//TODO review if i need to remove current load from grid if on grid
+
+		//remove supply from child
+		if( setHasBattery && childNetwork != null)
+			childNetwork.wireNetworkMaxPotentialSupply-=calculatedBatteryStoredEnergy
+			childNetwork.wireNetworkCurrentSupply-=calculatedCurrentBatteryDistargeRate
+			calculatedCurrentBatteryDistargeRate=0
 
 
+	//If parent network is null and is a wireless node, then connect to area network
+	if(parentNetwork == null && setParentNetworkAttachesOnThisSpace ==1)
+		//Attempt to connect to wired network
+		//TODO Folix this logic
 
-/datum/power/PowerNode/proc/update()
+	if(parentNetwork == null && setDrawPowerFromArea == 1 && area != null)
+		//Attempt to connect to area network
+		parentNetwork = area.getWireNetwork()
+		parentNetwork.add(src)
+
+
 	if(parentNetwork !=null && isOn ==1)
 		//Calculate diffs
 
-		var/calculatedLoadDiff = (setCurrentLoad + setBatteryChargeRate) - oldCalculatedLoadOnParentNetwork
+		var/calculatedLoadDiff = 0
+
+
+		if(runningOnGridOrBattery == 0)
+			//Grid
+			calculatedLoadDiff =(setCurrentLoad + setBatteryChargeRate) - oldCalculatedLoadOnParentNetwork
+		else
+			calculatedLoadDiff = 0 - oldCalculatedLoadOnParentNetwork
+
+
+
+
 		//var/oldIsOn
 		var/calculatedSupplyDiff = setCurrentSupply - oldCalculatedSupply
 		var/calculatedPotentialSupplyDiff = setMaxPotentialSupply - oldCalculatedSupply
@@ -259,13 +312,22 @@
 		//Check if there is a battery, if so, switch to it
 		if(setHasBattery==1)
 			runningOnGridOrBattery=1
+			powerNetworkControllerPowerNodeOnBatteryProcessingLoopList|=src
 			//Process battery will turn off node if not enough power
 		else
 			//No power, no battery, remove load from parent
 			isOn=0
-			parentNetwork.wireNetworkLoad -=calculatedTotalLoad
-			setCurrentLoad=0
+
+		//parentNetwork.wireNetworkLoad -=calculatedTotalLoad
+		//setCurrentLoad=0
 			parentNetwork.autoRestartListOff+=src
+
+	update()
+	if(setCallBackEvents!=null && isOn == 0)
+		setCallBackEvents.power_onChangeEvent( POWEREVENT_OFF)
+		#if defined(POWER_BACKWORDS_COMPATIBLITY)
+		setCallBackEvents.power_change()
+		#endif
 
 
 /*
@@ -295,7 +357,14 @@
 	return
 
 
+
 /datum/power/PowerNode/proc/requestPowerOn()
+	//TODO: testing something, remove this if when done
+	//if(setCallBackEvents!=null )
+	//setCallBackEvents.power_onChangeEvent()
+	//	setCallBackEvents.power_change()
+
+
 	if(isOn == 1)
 		return
 
@@ -307,16 +376,34 @@
 
 	if(parentNetwork != null && parentNetwork.wireNetworkMaxPotentialSupply-parentNetwork.wireNetworkLoad >= setIdleLoad)
 		isOn = 1
+		oldIsOn = 1
+
 		setCurrentLoad = setIdleLoad
 		update()
-		return
-	//TODO< check if on battery and switch over all load to grid
 
-	if(setHasBattery == 1 && setIdleLoad <= calculatedBatteryStoredEnergy)
+	//TODO< check if on battery and switch over all load to grid
+	else if(setHasBattery == 1 && setIdleLoad <= calculatedBatteryStoredEnergy)
 		isOn = 1
+		oldIsOn = 1
 		runningOnGridOrBattery = 1
 		setCurrentLoad = setIdleLoad
 		//the battery process loop will apply power to child nextwork on next tick
+
+
+
+
+	if(setCallBackEvents!=null && isOn == 1)
+		setCallBackEvents.power_onChangeEvent( POWEREVENT_ON)
+
+		#if defined(POWER_BACKWORDS_COMPATIBLITY)
+		setCallBackEvents.power_change()
+		#endif
+
+
+
+
+
+
 
 /*
 

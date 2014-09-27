@@ -72,7 +72,7 @@
 	//Power Node Behavior
 	powerNode.setName = name
 	powerNode.setCanAutoStartToIdle = 0
-	powerNode.setIdleLoad = 0
+	powerNode.setIdleLoad = POWERNODECONSTS_TURBINE_IDLE_LOAD
 	powerNode.setCurrentLoad = 0
 
 	//for solar, min and max will match
@@ -169,7 +169,7 @@
 
 
 	if(starter && !(stat & NOPOWER))
-		use_power(2800)
+		powerUtils.use_power(powerNode,POWERNODECONSTS_TURBINE_ACTIVE_LOAD,POWERNODECONSTS_TURBINE_ACTIVE_TICKS)
 		if(rpm<1000)
 			rpmtarget = 1000
 	else

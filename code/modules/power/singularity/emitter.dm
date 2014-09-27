@@ -116,7 +116,7 @@
 		if(wasOnAtLastCheck==0 && powerNode.isOn)
 			wasOnAtLastCheck=1
 			powerNode.setCurrentLoad = activePower;
-			powerNode.update()
+			powerNode.update(loc)
 			update_icon()
 			investigate_log("regained power and turned <font color='green'>on</font>","singulo")
 

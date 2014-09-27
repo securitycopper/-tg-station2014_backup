@@ -48,6 +48,15 @@
 
 /obj/machinery/vending/New()
 	..()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_VENDING_IDLE_LOAD
+	powerNode.update(loc)
+
+
+
 	wires = new(src)
 	spawn(4)
 		slogan_list = text2list(product_slogans, ";")
@@ -364,7 +373,7 @@
 			speak(vend_reply)
 			last_reply = world.time
 
-		use_power(5)
+
 		if(icon_vend) //Show the vending animation if needed
 			flick(icon_vend,src)
 		spawn(vend_delay)

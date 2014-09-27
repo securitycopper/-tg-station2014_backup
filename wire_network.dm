@@ -32,6 +32,9 @@
 
 	var/size = 0;
 
+	var/gridId = 0
+
+
 /datum/wire_network/proc/Destory()
 	//loop though all children and remove this from there parent or child after turning them off.
 
@@ -40,21 +43,24 @@
 	powerNodesThatCanNotSupplyPower = null
 
 
+
+
 /datum/wire_network/New()
 
 	powerNetworkControllerProcessingLoopList+=src
-
+	powerGridId++
+	gridId=powerGridId
 
 
 
 
 /datum/wire_network/proc/debugDebugNetwork()
-	world << "[setName] - Current Load([wireNetworkLoad]/[wireNetworkCurrentSupply]) Max Potential Supply = [wireNetworkMaxPotentialSupply], "
+	world << "[setName] - #[gridId] Current Load([wireNetworkLoad]/[wireNetworkCurrentSupply]) Max Potential Supply = [wireNetworkMaxPotentialSupply], "
 
 	for(var/datum/power/PowerNode/node in powerNodesThatCanSupplyPower)
-		world << "--> Supply: [node.setName] - isOn = [node.isOn], Load=[node.setCurrentLoad], Supply([node.setCurrentSupply]/[node.setMaxPotentialSupply]), Battery([node.calculatedBatteryStoredEnergy]/[node.setBatteryMaxCapacity]+[node.setBatteryChargeRate]-[node.calculatedCurrentBatteryDistargeRate])"
+		world << "--> Supply: [node.setName] - #[node.gridId] isOn = [node.isOn], Load=[node.setCurrentLoad], Supply([node.setCurrentSupply]/[node.setMaxPotentialSupply]), Battery([node.calculatedBatteryStoredEnergy]/[node.setBatteryMaxCapacity]+[node.setBatteryChargeRate]-[node.calculatedCurrentBatteryDistargeRate])"
 	for(var/datum/power/PowerNode/node in powerNodesThatCanNotSupplyPower)
-		world << "--> Consumer: [node.setName] - isOn = [node.isOn], Load=[node.setCurrentLoad], Supply([node.setCurrentSupply]/[node.setMaxPotentialSupply]), Battery([node.calculatedBatteryStoredEnergy]/[node.setBatteryMaxCapacity]+[node.setBatteryChargeRate]-[node.calculatedCurrentBatteryDistargeRate])"
+		world << "--> Consumer: [node.setName] - #[node.gridId] isOn = [node.isOn], OnBattery=[node.runningOnGridOrBattery], Load=[node.setCurrentLoad], Supply([node.setCurrentSupply]/[node.setMaxPotentialSupply]), Battery([node.calculatedBatteryStoredEnergy]/[node.setBatteryMaxCapacity]+[node.setBatteryChargeRate]-[node.calculatedCurrentBatteryDistargeRate])"
 
 
 /datum/wire_network/proc/process()
@@ -203,6 +209,9 @@
 
 
 /datum/wire_network/proc/add(var/datum/power/PowerNode/powerNode)
+	if(powerNode in allNonWiresConnected)
+		return
+
 	//if(powerNode.childNetwork==null && powerNode.parentNetwork ==null)
 	//	powerNode.parentNetwork = src
 

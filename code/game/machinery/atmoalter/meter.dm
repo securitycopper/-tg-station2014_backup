@@ -14,6 +14,13 @@
 
 /obj/machinery/meter/New()
 	..()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_METER_CONSTANT_LOAD
+	powerNode.update(loc)
+
 	src.target = locate(/obj/machinery/atmospherics/pipe) in loc
 	return 1
 
@@ -30,7 +37,7 @@
 		icon_state = "meter0"
 		return 0
 
-	use_power(5)
+
 
 	var/datum/gas_mixture/environment = target.return_air()
 	if(!environment)

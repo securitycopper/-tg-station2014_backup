@@ -159,11 +159,12 @@
 			target.switchcount = L2.switchcount
 			target.rigged = emagged
 			target.brightness = L2.brightness
-			target.on = target.has_power()
+//			if(target.powerNode.isOn)
+//				target.powerNode.requestPowerOn()
 			target.update()
 			qdel(L2)
 
-			if(target.on && target.rigged)
+			if(target.powerNode.isOn && target.rigged)
 				target.explode()
 			return
 

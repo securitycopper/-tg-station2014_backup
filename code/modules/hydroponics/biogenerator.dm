@@ -15,15 +15,23 @@
 	var/productivity = 0
 
 /obj/machinery/biogenerator/New()
-		..()
-		create_reagents(1000)
-		component_parts = list()
-		component_parts += new /obj/item/weapon/circuitboard/biogenerator(null)
-		component_parts += new /obj/item/weapon/stock_parts/matter_bin(null)
-		component_parts += new /obj/item/weapon/stock_parts/manipulator(null)
-		component_parts += new /obj/item/weapon/stock_parts/console_screen(null)
-		component_parts += new /obj/item/stack/cable_coil(null, 1)
-		RefreshParts()
+	..()
+
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_BIOGENERATOR_IDLE_LOAD
+	powerNode.update()
+
+	create_reagents(1000)
+	component_parts = list()
+	component_parts += new /obj/item/weapon/circuitboard/biogenerator(null)
+	component_parts += new /obj/item/weapon/stock_parts/matter_bin(null)
+	component_parts += new /obj/item/weapon/stock_parts/manipulator(null)
+	component_parts += new /obj/item/weapon/stock_parts/console_screen(null)
+	component_parts += new /obj/item/stack/cable_coil(null, 1)
+	RefreshParts()
 
 /obj/machinery/biogenerator/RefreshParts()
 	var/E = 0
@@ -183,7 +191,8 @@
 		update_icon()
 		updateUsrDialog()
 		playsound(src.loc, 'sound/machines/blender.ogg', 50, 1)
-		use_power(S*30)
+		powerUtils.use_power(powerNode, S*POWERNODECONSTS_BIOGENERATOR_ACTIVE_LOAD_PERCONTENTS,POWERNODECONSTS_BIOGENERATOR_ACTIVE_TICKS)
+
 		sleep(S+15/productivity)
 		processing = 0
 		update_icon()
@@ -286,4 +295,4 @@
 	else if(href_list["menu"])
 		menustat = "menu"
 		updateUsrDialog()
-		
+

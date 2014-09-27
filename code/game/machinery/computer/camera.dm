@@ -8,6 +8,22 @@
 	var/list/network = list("SS13")
 	var/mapping = 0//For the overview file, interesting bit of code.
 
+
+
+
+
+/obj/machinery/computer/security/New()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_CAMERA_IDLE_LOAD
+
+
+	powerNode.update(loc)
+
+
+
 /obj/machinery/computer/security/check_eye(var/mob/user as mob)
 	if ((get_dist(user, src) > 1 || user.blinded || !( current ) || !( current.status )) && (!istype(user, /mob/living/silicon)))
 		return null
@@ -77,7 +93,6 @@
 					A.client.eye = A.eyeobj
 				else
 					src.current = C
-					use_power(50)
 
 				spawn(5)
 					attack_hand(user)

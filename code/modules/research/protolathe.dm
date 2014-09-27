@@ -23,12 +23,19 @@ Note: Must be placed west/left of and R&D console to function.
 	var/clown_amount = 0.0
 	var/adamantine_amount = 0.0
 	var/efficiency_coeff
-	
+
 	reagents = new()
 
 
 /obj/machinery/r_n_d/protolathe/New()
 	..()
+	powerNode = new /datum/power/PowerNode()
+	//Power Node Behavior
+	powerNode.setName = name
+	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setIdleLoad = POWERNODECONSTS_PROTOLATHE_IDLE_LOAD
+	powerNode.update(loc)
+
 	component_parts = list()
 	component_parts += new /obj/item/weapon/circuitboard/protolathe(src)
 	component_parts += new /obj/item/weapon/stock_parts/matter_bin(src)
@@ -38,7 +45,7 @@ Note: Must be placed west/left of and R&D console to function.
 	component_parts += new /obj/item/weapon/reagent_containers/glass/beaker(src)
 	component_parts += new /obj/item/weapon/reagent_containers/glass/beaker(src)
 	RefreshParts()
-	
+
 	reagents.my_atom = src
 
 /obj/machinery/r_n_d/protolathe/proc/TotalMaterials() //returns the total of all the stored materials. Makes code neater.
@@ -157,7 +164,8 @@ Note: Must be placed west/left of and R&D console to function.
 
 	icon_state = "protolathe"
 	busy = 1
-	use_power(max(1000, (MINERAL_MATERIAL_AMOUNT*amount/10)))
+	var/powerUse = max(POWERNODECONSTS_PROTOLATHE_ACTIVE_LOAD_MIN, (MINERAL_MATERIAL_AMOUNT*amount/10))
+	powerUtils.use_power(powerNode,powerUse,POWERNODECONSTS_PROTOLATHE_ACTIVE_TICKS)
 	user << "<span class='notice'>You add [amount] sheets to the [src.name].</span>"
 	icon_state = "protolathe"
 	if(istype(stack, /obj/item/stack/sheet/metal))
