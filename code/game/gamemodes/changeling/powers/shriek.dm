@@ -22,7 +22,7 @@
 			M.Weaken(rand(5,10))
 
 	for(var/obj/machinery/light/L in range(4, user))
-		L.powerNode.requestPowerOn()
+		//L.powerNode.requestPowerOn()
 		L.broken()
 
 	feedback_add_details("changeling_powers","RS")
@@ -37,7 +37,7 @@
 //A flashy ability, good for crowd control and sewing chaos.
 /obj/effect/proc_holder/changeling/dissonant_shriek/sting_action(var/mob/user)
 	for(var/obj/machinery/light/L in range(5, usr))
-		L.powerNode.requestPowerOn()
+		//L.powerNode.requestPowerOn()
 		L.broken()
 	empulse(get_turf(user), 2, 5, 1)
 	return 1

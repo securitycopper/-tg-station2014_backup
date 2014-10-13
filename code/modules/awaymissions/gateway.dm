@@ -50,7 +50,7 @@
 
 obj/machinery/gateway/centerstation/process()
 	if(stat & (NOPOWER) && active && powerNode.isOn == 1)
-		powerNode.forceBrownOut()
+		powerNode.publicTurnOff()
 		toggleoff()
 		return
 

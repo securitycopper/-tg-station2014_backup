@@ -188,25 +188,7 @@ var/global/pipe_processing_killed = 0
 				//POWERNETS
 				timer = world.timeofday
 				//Simulate an iteration
-				for(var/datum/power/PowerNode/powerNodeWithBattery in powerNetworkControllerPowerNodeOnBatteryProcessingLoopList)
-					powerNodeWithBattery.prcessBattery()
-
-				for(var/datum/wire_network/wireNetwork in powerNetworkControllerProcessingLoopList)
-					wireNetwork.process()
-					#if defined(DEBUG_WIRENETWORK_PRINT_TREE)
-					//wireNetwork.debugDebugNetwork()
-					#endif
-
-				//TODO: Folix, refactor this into an efficent cicular queue that stops when iternation = size
-				for(var/datum/power/PowerNode/powerNodeActivePower in powerNetworkControllerPowerActivePowerTicks)
-					if( powerNodeActivePower.activePowerTicksRemaining == 0 )
-						powerNetworkControllerPowerActivePowerTicks-=powerNodeActivePower
-						powerNodeActivePower.setCurrentLoad = powerNodeActivePower.setIdleLoad
-					else
-						powerNodeActivePower.activePowerTicksRemaining--
-
-
-				//process_powernets()
+				powerController.processPower()
 				powernets_cost = (world.timeofday - timer) / 10
 
 				sleep(breather_ticks)

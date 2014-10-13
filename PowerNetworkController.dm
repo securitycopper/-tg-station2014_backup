@@ -1,9 +1,15 @@
 var/global/list/powerNetworkControllerProcessingLoopList = list()
 var/global/list/powerNetworkControllerPowerNodeOnBatteryProcessingLoopList = list()
 
-var/global/powerGridId=0
+
 
 var/global/list/powerNetworkControllerPowerActivePowerTicks = list()
+
+
+var/global/currentUniqueId = 0
+proc/global/getUniqueID()
+	currentUniqueId++
+	return currentUniqueId
 
 
 
@@ -44,4 +50,27 @@ var/global/list/powerNetworkControllerPowerActivePowerTicks = list()
 */
 
 
-\datum\PowerNetworkController
+/datum/PowerNetworkController
+
+
+/datum/PowerNetworkController/proc/processPower()
+	//Simulate an iteration
+	for(var/datum/power/PowerNode/powerNodeWithBattery in powerNetworkControllerPowerNodeOnBatteryProcessingLoopList)
+		powerNodeWithBattery.privatePrcessBattery()
+
+	for(var/datum/wire_network/wireNetwork in powerNetworkControllerProcessingLoopList)
+		wireNetwork.process()
+		#if defined(DEBUG_WIRENETWORK_PRINT_TREE)
+		//wireNetwork.debugDebugNetwork()
+		#endif
+
+	//TODO: Folix, refactor this into an efficent cicular queue that stops when iternation = size
+	for(var/datum/power/PowerNode/powerNodeActivePower in powerNetworkControllerPowerActivePowerTicks)
+		if( powerNodeActivePower.activePowerTicksRemaining == 0 )
+			powerNetworkControllerPowerActivePowerTicks-=powerNodeActivePower
+			powerNodeActivePower.setCurrentLoad = powerNodeActivePower.setIdleLoad
+		else
+			powerNodeActivePower.activePowerTicksRemaining--
+
+
+

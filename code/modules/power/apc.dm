@@ -149,36 +149,9 @@
 			src.update()
 
 
+	terminalPowerNode = new /datum/power/PowerNode()
+	terminalPowerNode.initApcConfiguration(turfloc.loc)
 
-	powerNode = new /datum/power/PowerNode()
-	//Power Node Behavior
-	powerNode.setName = name
-	powerNode.setCanAutoStartToIdle = 1
-	powerNode.setIdleLoad = 0
-	powerNode.setCurrentLoad = 0
-
-	//for solar, min and max will match
-	powerNode.setMaxPotentialSupply = 0
-	powerNode.setCurrentSupply = 0
-
-	//Battery options
-	powerNode.calculatedBatteryStoredEnergy = 2500
-
-
-
-	powerNode.setHasBattery=1
-	powerNode.setBatteryMaxCapacity=2500
-	powerNode.setBatteryChargeRate=2500
-
-
-	powerNode.setDrawPowerFromArea = 0
-
-
-	var/datum/wire_network/areaNetwork  = area.getWireNetwork()
-
-	powerNode.childNetwork = areaNetwork
-	areaNetwork.add(powerNode)
-	powerNode.update()
 
 
 	if(cell_type!=0)

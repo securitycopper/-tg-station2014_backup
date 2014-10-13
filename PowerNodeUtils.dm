@@ -1,6 +1,14 @@
 
 var/global/datum/power/PowerNodeUtils/powerUtils = new /datum/power/PowerNodeUtils()
 
+#define LIST_PUSH(list,element) list.Insert(1,element)
+
+#define LIST_POP(list) list[1];list.Cut(1,2);
+
+/datum/power/PowerNode
+
+
+
 
 
 /datum/power/PowerNodeUtils
@@ -28,17 +36,8 @@ Depercated: This is support some old power net logic
 	else
 		world << "[name] isn't set up on the new power system yet"
 
-/area
-	var/datum/wire_network/wireNetwork = null
 
-/area/proc/use_power(var/powerUsed)
-	//na
 
-/area/proc/getWireNetwork()
-	if(wireNetwork ==null)
-		wireNetwork = new /datum/wire_network()
-		wireNetwork.setName = "Area Wire_Network"
-	return wireNetwork
 
 /datum/power/PowerNodeUtils/proc/use_power(var/datum/power/PowerNode/powerNode, var/amount, var/numOfTicks)
 	powerNode.activePowerTicksRemaining=numOfTicks
@@ -93,16 +92,17 @@ Depercated: This is support some old power net logic
 	//This contains a list of objects that have a parentNode var
 	//TODO Folix: replace this with normal list after this is working
 
-	var/datum/datastructures/LinkedList/toProcessCable = new /datum/datastructures/LinkedList()
+	var/list/toProcessCable = list()
 
 //	var/list/toProcessCable = list()
 
-	toProcessCable.push(powerNodeSpaceWithoutNetowrk);
+	LIST_PUSH(toProcessCable,powerNodeSpaceWithoutNetowrk)
 
 	//Propagate along wires
-	while(toProcessCable.size >0)
+	while(toProcessCable.len >0)
 		//Pop first element
-		var/obj/structure/cable/currentNode = toProcessCable.pop()
+		var/obj/structure/cable/currentNode = LIST_POP(toProcessCable)
+
 		if(currentNode.parentNetwork==toReplace)
 			currentNode.parentNetwork = toPropagate
 
@@ -114,12 +114,24 @@ Depercated: This is support some old power net logic
 				cdir = get_dir(T,currentNode.loc)
 				for(var/obj/structure/cable/C in T)
 					if(C.d1 == cdir || C.d2 == cdir)
-						toProcessCable.push(C)
+						LIST_PUSH(toProcessCable,C)
 
 			//Attach any machines if found on this space
 			for(var/obj/machinery/machine in currentNode.loc)
 
+				/*** Terminal Logic get and set powerNode from master ***/
+
+				//For terminals, we need to get the terminal node from the master
+				if(istype(machine,/obj/machinery/power/terminal))
+					var/obj/machinery/power/terminal/terminal = machine
+					var/obj/machinery/terminalMaster = terminal.master
+					terminal.powerNode = terminalMaster.terminalPowerNode
+
 				var/datum/power/PowerNode/machinepowerNode = machine.powerNode
+
+/*
+			//START HERE	zxsc
+
 
 
 				//Terminal Logic
@@ -129,38 +141,35 @@ Depercated: This is support some old power net logic
 					if(terminal.master!=null)
 						//Now we either will set the child or parent network
 
+						if(istype(terminal.master, /obj/machinery/power/apc)
+
+
 						//TODO Folix: add logic to remove from network if one exists
 						if(terminalMasterPowerNode.setParentNetworkAttachesOnThisSpace==1)
 							if(terminalMasterPowerNode.parentNetwork == toReplace)
 								terminalMasterPowerNode.parentNetwork = toPropagate
 
 								//logic for apc
-								if(terminalMasterPowerNode.childNetwork==null)
-
-								//TODO Folix add logic to remove if exists and needs to be updated
-
-									var/area/area = get_area(terminal.master)
-
-
+								if(terminalMasterPowerNode.outputNode!=null && terminalMasterPowerNode.outputNode.parentNetwork==null)
 
 
 						else
 							//smes
-							if(terminalMasterPowerNode.childNetwork == toReplace)
-								terminalMasterPowerNode.childNetwork = toPropagate
+							if(terminalMasterPowerNode.outputNode != null && terminalMasterPowerNode.outputNode.parentNetwork == toReplace)
+								terminalMasterPowerNode.outputNode.parentNetwork = toPropagate
 
 
 						//apc logic for adding to power area as child network
 						if(istype(terminal.master, /obj/machinery/power/apc))
 							var/area/area = get_area(terminal.master)
-							terminalMasterPowerNode.childNetwork = area.getWireNetwork()
-							terminalMasterPowerNode.childNetwork.add(terminalMasterPowerNode)
+							terminalMasterPowerNode.outputNode.parentNetwork = area.getWireNetwork()
+							terminalMasterPowerNode.outputNode.parentNetwork.add(terminalMasterPowerNode)
 					toPropagate.add(terminal.master.powerNode)
 
-
+*/
 				//Normal machine logic
-				if(machinepowerNode!=null && machine.anchored && !istype(machine,/obj/machinery/power/terminal))
-					if(machinepowerNode.setParentNetworkAttachesOnThisSpace == 1 && machinepowerNode.parentNetwork == toReplace)
+				if(machinepowerNode!=null && machine.anchored )
+					if(machinepowerNode.parentNetwork == toReplace)
 
 						//remove machine from existing network and add to new one
 						var/datum/wire_network/machineparentNetwork = machinepowerNode.parentNetwork
@@ -174,11 +183,12 @@ Depercated: This is support some old power net logic
 							machinepowerNode.parentNetwork = toPropagate
 							world << "power connecting machine [machinepowerNode.setName]"
 							toPropagate.add(machinepowerNode)
-
-					if(machinepowerNode.setParentNetworkAttachesOnThisSpace == 0 && machinepowerNode.childNetwork == toReplace)
+/*
+					var/datum/power/PowerNode/machineOutputNode = machinepowerNode.outputNode
+					if(machinepowerNode.setParentNetworkAttachesOnThisSpace == 0 && machineOutputNode != null && machineOutputNode.parentNetwork == toReplace)
 
 						//remove machine from existing network and add to new one
-						var/datum/wire_network/machinechildNetwork = machinepowerNode.childNetwork
+						var/datum/wire_network/machinechildNetwork = machinepowerNode.outputNode.parentNetwork
 						if(machinechildNetwork!=null)
 						 	//The machine is currently atached to a network, remove it
 							machinechildNetwork.remove(machinepowerNode)
@@ -186,7 +196,8 @@ Depercated: This is support some old power net logic
 						//now add machine to new network if one exists. it should, but to suppor the off case where one
 						// would want to propagate null for what ever reason. I'll put a check in.
 						if(toPropagate!=null)
-							machinepowerNode.childNetwork = toPropagate
+							machinepowerNode.outputNode.parentNetwork = toPropagate
 							world << "power connecting machine [machinepowerNode.setName]"
-							toPropagate.add(machinepowerNode)
+							toPropagate.add(machinepowerNode.outputNode)
 
+*/

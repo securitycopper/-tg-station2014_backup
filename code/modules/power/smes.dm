@@ -31,27 +31,21 @@
 /obj/machinery/power/smes/New()
 	..()
 
-	powerNode = new /datum/power/PowerNode()
-	//Power Node Behavior
-	powerNode.setName = name
-	powerNode.setCanAutoStartToIdle = 1
-	powerNode.setIdleLoad = 10
-	powerNode.setCurrentLoad = 0
-	powerNode.setParentNetworkAttachesOnThisSpace = 0
 
-	//for solar, min and max will match
-	powerNode.setMaxPotentialSupply = 0
-	powerNode.setCurrentSupply = 0
+	/*
+	SMES Code
+		var/datum/power/PowerNode/terminalPowerNode = new /datum/power/PowerNode()
+		terminalPowerNode.initSmesConfiguration()
+		terminalPowerNode.setBattery(chargeRate,intialCharge,capacity)
+		powerNode = terminalPowerNode.outputNode
+	*/
 
-	//Battery options
-	powerNode.setHasBattery=1
-	powerNode.setBatteryMaxCapacity=5e6
-	powerNode.calculatedBatteryStoredEnergy = 1e6
-	powerNode.setBatteryChargeRate=50000
-	powerNode.setBatteryMaxDischargeRate=200000
+	/***** New *****/
+	terminalPowerNode = new /datum/power/PowerNode()
+	terminalPowerNode.initSmesConfiguration()
+	powerNode = terminalPowerNode.outputNode
 
-	powerNode.setDrawPowerFromArea = 0
-	powerNode.update()
+
 
 	if(charge!=0)
 		powerNode.calculatedBatteryStoredEnergy = charge

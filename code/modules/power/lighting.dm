@@ -242,17 +242,11 @@
 
 
 	powerNode = new /datum/power/PowerNode()
-	powerNode.setCallBackEvents = src
+	powerNode.init(loc.loc, POWERNODECONSTS_LIGHTING_IDLE_LOAD)
+	powerNode.setListener(src)
 
 	//Power Node Behavior
 	powerNode.setName = "obj/machinery/light"
-	powerNode.setCanAutoStartToIdle = 1
-	powerNode.setIdleLoad = POWERNODECONSTS_LIGHTING_IDLE_LOAD
-
-	//var /area/area = get_area(src)
-	//var /datum/wire_network/areaNetwork = area.getWireNetwork()
-	//world << "adding new light to [areaNetwork.setName]"
-	powerNode.update(loc.loc)
 
 
 	spawn(2)
