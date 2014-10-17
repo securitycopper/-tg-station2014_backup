@@ -32,18 +32,16 @@ var/list/solars_list = list()
 	powerNode = new /datum/power/PowerNode()
 	//Power Node Behavior
 	powerNode.setName = "Solar Panel "
-	powerNode.setCanAutoStartToIdle = 1
+	powerNode.setCanAutoStartToIdle = 0
 	powerNode.setIdleLoad = 0
 	powerNode.setCurrentLoad = 0
 
+	powerNode.canSupplyPower=1
 	//for solar, min and max will match
 	powerNode.setMaxPotentialSupply = 200
 	powerNode.setCurrentSupply = 200
 
-	//Battery options
-	powerNode.setHasBattery=0
-	powerNode.setBatteryMaxCapacity=0
-	powerNode.setBatteryChargeRate=0
+
 
 
 

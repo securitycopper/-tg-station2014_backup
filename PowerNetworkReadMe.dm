@@ -3,7 +3,12 @@
 This file discusses the power network rewrite
 
 
+##############  Summery ###################
+Machines that use power create a PowerNode that has call back events the machine can listen to.
 
+Process Loop:
+Battery logic - Charges/discharges the battery and changes power output to wire networks
+wire networks - Turns Power Nodes on and off. Can request aditional power from power node suppliers
 
 
 

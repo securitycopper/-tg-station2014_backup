@@ -322,13 +322,14 @@
 
 	active_power_usage = (luminosity * 10)
 
+/* TODO disabled
 	if(powerNode.isOn)
 		powerNode.setCurrentLoad = luminosity * 20 //20W per unit luminosity
 
 	else
 		powerNode.setCurrentLoad = 0
-
-	powerNode.update(loc)
+*/
+	powerNode.update()
 
 
 // attempt to set the light's on/off status

@@ -4,6 +4,17 @@
 #endif
 */
 
+#define LIST_PUSH(list,element) list.Insert(1,element)
+
+#define LIST_POP(list) list[1];list.Cut(1,2);
+
+#define LIST_ADDFIRST(list,element) LIST_PUSH(list,element)
+
+#define LIST_ADDLAST(list,element) list.Insert(list.len+1 ,element)
+
+
+
+
 /area/proc/getWireNetwork()
 	if(wireNetwork ==null)
 		wireNetwork = new /datum/wire_network()
@@ -17,6 +28,7 @@
 /area/proc/use_power(var/powerUsed)
 	//na
 
+//#define WIRE_DEBUG world<<"[setName]: ([wireNetworkLoad]/[wireNetworkCurrentSupply]/[wireNetworkMaxPotentialSupply])"
 /datum/wire_network
 
 
@@ -29,17 +41,20 @@
 	var/wireNetworkCurrentSupply = 0
 	var/wireNetworkLoad = 0;
 
+
 	//var/autoRestartLoad = 0;
 
 	//Linked list because of rolling brownouts
-	var/list/brownOutList = list()
-	var/list/autoRestartListOff = list()
+//	var/list/brownOutList = list()
+//	var/list/autoRestartListOff = list()
 	var/list/autoRestartListOn = list()
 
-	var/list/manualRestartList = list()
+	var/list/manualRestartListOn = list()
 
 
 
+
+	var/list/processQueue = list()
 
 
 	var/list/powerNodesThatCanSupplyPower = list()
@@ -68,11 +83,12 @@
 	powerNetworkControllerProcessingLoopList+=src
 	gridId = getUniqueID()
 
-
+#define ADITONAL_NEEDED (aditonalAmount - (wireNetworkCurrentSupply-wireNetworkLoad))
 /datum/wire_network/proc/boolean_reserveAditionalPower(var/aditonalAmount)
 //	world << "wirenetwork -> boolean_reserveAditionalPower([aditonalAmount])"
 
-	var/powerWeNeedToGetFromSuppliersRemaining = aditonalAmount - (wireNetworkCurrentSupply-wireNetworkLoad)
+	var/powerWeNeedToGetFromSuppliersRemaining = ADITONAL_NEEDED
+
 
 	if(powerWeNeedToGetFromSuppliersRemaining<=0)
 		return 1
@@ -81,84 +97,142 @@
 
 	for(var/datum/power/PowerNode/supply in powerNodesThatCanSupplyPower)
 
-		if(supply.powerNodeListener != null)
-			powerWeNeedToGetFromSuppliersRemaining-= supply.powerNodeListener.power_onChangeEvent(supply, POWEREVENT_ADITIONAL_POWER_REQUEST,powerWeNeedToGetFromSuppliersRemaining)
+		var/requestAmount = ADITONAL_NEEDED
+		//world << "aditonalAmount=[aditonalAmount], maxCanRequest=[maxCanRequest], requestAmount=[requestAmount], powerWeNeedToGetFromSuppliersRemaining=[powerWeNeedToGetFromSuppliersRemaining]"
 
-		else
-			if(supply.objListener !=null)
-				var/obj/o = supply.objListener
-				powerWeNeedToGetFromSuppliersRemaining-= o.power_onChangeEvent(supply, POWEREVENT_ADITIONAL_POWER_REQUEST,powerWeNeedToGetFromSuppliersRemaining)
+
+		if(requestAmount>0)
+			if(supply.powerNodeListener != null)
+				//world << "supply=[supply], POWEREVENT_ADITIONAL_POWER_REQUEST=[POWEREVENT_ADITIONAL_POWER_REQUEST], requestAmount=[requestAmount]"
+				powerWeNeedToGetFromSuppliersRemaining-= supply.powerNodeListener.power_onChangeEvent(supply, POWEREVENT_ADITIONAL_POWER_REQUEST,powerWeNeedToGetFromSuppliersRemaining)
+			//	world << "DONE: supply=[supply], POWEREVENT_ADITIONAL_POWER_REQUEST=[POWEREVENT_ADITIONAL_POWER_REQUEST], requestAmount=[requestAmount]"
+
+			else
+				if(supply.objListener !=null)
+					var/obj/o = supply.objListener
+
+					powerWeNeedToGetFromSuppliersRemaining-= o.power_onChangeEvent(supply, POWEREVENT_ADITIONAL_POWER_REQUEST,powerWeNeedToGetFromSuppliersRemaining)
 
 		if(powerWeNeedToGetFromSuppliersRemaining<=0)
 		//	world << "wirenetwork <- boolean_reserveAditionalPower([aditonalAmount]):1"
 			return 1
 
+	/***** Process brownouts *****/
+	//Cycle through the automatic start list
+	var/i = 0
+	var/size = autoRestartListOn.len
+	while(i<size && ADITONAL_NEEDED  >=0 )
+		i++
+		var/datum/power/PowerNode/powerNodeThatWeWantToTurnOff = LIST_POP(autoRestartListOn)
+		if(powerNodeThatWeWantToTurnOff.setCurrentLoad>0)
+			powerNodeThatWeWantToTurnOff.privateForceBrownOut();
+		LIST_ADDLAST(processQueue,powerNodeThatWeWantToTurnOff)
 
 
-//	world << "wirenetwork <- boolean_reserveAditionalPower([aditonalAmount]):0"
-	return 0
+	i=0
+	size = 	manualRestartListOn.len
+	while(i<size && ADITONAL_NEEDED  >=0 )
+		i++
+		var/datum/power/PowerNode/powerNodeThatWeWantToTurnOff = LIST_POP(manualRestartListOn)
+		powerNodeThatWeWantToTurnOff.privateForceBrownOut();
+		//We don't auto start manual so they don't get added to a list
 
+	if(ADITONAL_NEEDED >= 0)
+		return 1
+	else
+		return 0
 
 /datum/wire_network/proc/process()
-	var/list/moveFromAutoRestartListOnToListOff = list()
 
-	/***** Process brownouts *****/
+	if(wireNetworkMaxPotentialSupply<0 || wireNetworkCurrentSupply< 0 || wireNetworkLoad<0)
+		errorCycle()
 
-	for(var/datum/power/PowerNode/powerNodeThatWeWantToTurnOff in autoRestartListOn)
-		if(wireNetworkCurrentSupply<wireNetworkLoad)
-			powerNodeThatWeWantToTurnOff.privateForceBrownOut();
-			moveFromAutoRestartListOnToListOff+=powerNodeThatWeWantToTurnOff
-		else
-			break
+	//var/list/moveFromAutoRestartListOnToListOff = list()
 
-	for(var/datum/power/PowerNode/powerNodeThatWeWantToTurnOff in manualRestartList)
-		if(wireNetworkCurrentSupply<wireNetworkLoad)
-			powerNodeThatWeWantToTurnOff.privateForceBrownOut();
-			moveFromAutoRestartListOnToListOff+=powerNodeThatWeWantToTurnOff
-		else
-			break
-
-
-	for(var/datum/power/PowerNode/p in moveFromAutoRestartListOnToListOff)
-		autoRestartListOn-=p
-		autoRestartListOff+=p
-
+//	WIRE_DEBUG
 
 	/***** Process auto starts *****/
-	//check to see if current supply is enough for load,
-	if(wireNetworkCurrentSupply>=wireNetworkLoad && autoRestartListOff.len ==0)
-		return
+	//Process one node per tick
+	if(processQueue.len > 0)
+		var/datum/power/PowerNode/toProcess = LIST_POP(processQueue)
+		//world << "WireNetwork process: [toProcess.setName] (isOn=[toProcess.isOn], setIdleLoad[toProcess.setIdleLoad]<=wireNetworkMaxPotentialSupply=[wireNetworkMaxPotentialSupply]"
+		if(toProcess.isOn==0 && toProcess.setIdleLoad<=wireNetworkMaxPotentialSupply)
 
-	var/list/moveFromAutoRestartListOffToListOn = list()
+			if(boolean_reserveAditionalPower(toProcess.setIdleLoad) == 1)
+				//world << "WireNetwork process: [toProcess.setName] - Was able to request enough power"
+				toProcess.privateRequestPowerOn()
+				if(toProcess.isOn==1)
+				//	world << "WireNetwork process: [toProcess.setName] - is now on"
+					if(toProcess.setCanAutoStartToIdle==1)
+						if(toProcess.canSupplyPower==1)
+							LIST_ADDLAST(powerNodesThatCanSupplyPower,toProcess)
+						else
+							LIST_ADDLAST(autoRestartListOn,toProcess)
+					else
+						LIST_ADDLAST(manualRestartListOn,toProcess)
+
+					//WIRE_DEBUG
+					return
 
 
-	for(var/datum/power/PowerNode/powerNodeThatWeWantToTurnOn in autoRestartListOff)
-		//Note: We already know the node can be started to idle because its in this list
-
-		if(boolean_reserveAditionalPower(powerNodeThatWeWantToTurnOn.setIdleLoad+powerNodeThatWeWantToTurnOn.setBatteryChargeRate)==1)
-			/***** Turn on the node because we have enough power *****/
-			powerNodeThatWeWantToTurnOn.privateRequestPowerOn()
-			if(powerNodeThatWeWantToTurnOn.isOn == 1)
-				moveFromAutoRestartListOffToListOn+=powerNodeThatWeWantToTurnOn
+		//world << "WireNetwork process: [toProcess.setName] - failed to start"
+		LIST_ADDLAST(processQueue,toProcess)
 
 
+	//WIRE_DEBUG
 
+// Error proc only called if math error is detected, IE if values go negative
+/datum/wire_network/proc/errorCycle()
+	world << "Math Error: Wirenetwork=[setName] [gridId], reseting network ([wireNetworkLoad]/[wireNetworkCurrentSupply]/[wireNetworkMaxPotentialSupply])"
 
-	for(var/datum/power/PowerNode/moveNode in moveFromAutoRestartListOffToListOn)
-		autoRestartListOff-=moveNode
-		autoRestartListOn+=moveNode
+	//Create a new list with one instance of all nodes
+	var/list/newNetworkNodes = list()
+
+	//Search master list (should contain evertything, but there is an error so search all lists)
+	for(var/datum/power/PowerNode/powerNode in allNonWiresConnected)
+		newNetworkNodes|=powerNode
+
+	for(var/datum/power/PowerNode/powerNode in autoRestartListOn)
+		newNetworkNodes|=powerNode
+
+	for(var/datum/power/PowerNode/powerNode in processQueue)
+		newNetworkNodes|=powerNode
+
+	//Remove all nodes safely
+	for(var/datum/power/PowerNode/powerNode in newNetworkNodes)
+		remove(powerNode)
+
+	//Clear lists
+	allNonWiresConnected.Cut(0)
+	autoRestartListOn.Cut(0)
+	processQueue.Cut(0)
+
+	//Clear stats
+	wireNetworkMaxPotentialSupply = 0
+	wireNetworkCurrentSupply = 0
+	wireNetworkLoad = 0;
+
+	//Reinitlize network
+	for(var/datum/power/PowerNode/powerNode in newNetworkNodes)
+		add(powerNode)
+		world << "  -->Ading: Name=[powerNode.setName] [gridId], reseting network ([powerNode.setCurrentLoad]/[powerNode.setCurrentSupply]/[powerNode.setMaxPotentialSupply])"
+
 
 
 
 /datum/wire_network/proc/remove(var/datum/power/PowerNode/powerNode)
 	powerNode.privateForceBrownOut()
 	powerNode.parentNetwork = null
-	autoRestartListOff -= powerNode
+	processQueue -= powerNode
 	autoRestartListOn -= powerNode
 	allNonWiresConnected -= powerNode
 	return
 
 
+
+/datum/wire_network/proc/privateBrownOut(var/datum/power/PowerNode/powerNode)
+	remove(powerNode)
+	add(powerNode)
 
 
 /datum/wire_network/proc/add(var/datum/power/PowerNode/powerNode)
@@ -169,19 +243,14 @@
 	powerNode.parentNetwork = src
 	allNonWiresConnected.Add(powerNode)
 
-	if(powerNode.canSupplyPower == 1)
-		powerNodesThatCanSupplyPower.Add(powerNode)
-	else
-		powerNodesThatCanNotSupplyPower.Add(powerNode)
-
+	//if(powerNode.canSupplyPower == 1)
+	//	powerNodesThatCanSupplyPower.Add(powerNode)
 
 	if( powerNode.setCanAutoStartToIdle == 1 )
-		if(boolean_reserveAditionalPower(powerNode.setIdleLoad+powerNode.setBatteryChargeRate)==1)
-			powerNode.privateRequestPowerOn()
-			autoRestartListOn+=powerNode
+		if(powerNode.canSupplyPower == 1)
+			LIST_PUSH(processQueue,powerNode)
 		else
+			LIST_ADDLAST(processQueue,powerNode)
 
-			autoRestartListOff+=powerNode
-	else
-		manualRestartList+=powerNode
+
 

@@ -40,10 +40,11 @@ Depercated: This is support some old power net logic
 
 
 /datum/power/PowerNodeUtils/proc/use_power(var/datum/power/PowerNode/powerNode, var/amount, var/numOfTicks)
+/* Disabled
 	powerNode.activePowerTicksRemaining=numOfTicks
 	powerNode.setCurrentLoad = amount
 	powerNetworkControllerPowerActivePowerTicks|=powerNode
-
+*/
 
 
 
@@ -59,7 +60,7 @@ Depercated: This is support some old power net logic
 	//TODO: Folix: add remove logic
 
 /datum/power/PowerNodeUtils/proc/addCell(var/datum/power/PowerNode/powerNode, var/obj/item/weapon/stock_parts/cell/cell)
-
+/* Disabled
 	//I'm remapping the vars here because it will make it easier to follow
 	var/cellCapacity = cell.maxcharge
 	var/cellStoredEnergy = cell.charge
@@ -77,6 +78,7 @@ Depercated: This is support some old power net logic
 
 
 	powerNode.storedObjects.Add(cell)
+*/
 
 //TODO Folix: add remove cell logic
 

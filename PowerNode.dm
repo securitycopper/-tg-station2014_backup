@@ -15,6 +15,7 @@
 #define POWER_STATE_ON 1
 #define POWER_STATE_BATTERY 2
 
+#define LIST_ADDLAST(list,element) list.Insert(list.len+1 ,element)
 
 /datum/power/PowerNode
 
@@ -175,7 +176,7 @@ APC Code
 	outputNode.setIdleLoad = 0
 	outputNode.setListener(src)
 	areaNetwork.add(outputNode)
-	outputNode.update()
+	//outputNode.update()
 
 
 
@@ -208,25 +209,23 @@ APC Code
 
 /datum/power/PowerNode/proc/update()
 
+/*
 	if(setHasBattery==1 && outputNode!=null && outputNode.isOn == POWER_STATE_ON)
+		//world << "update: 	outputNode.setMaxPotentialSupply=[outputNode.setMaxPotentialSupply], outputNode.setCurrentSupply=[outputNode.setCurrentSupply]"
 		outputNode.setMaxPotentialSupply = calculatedBatteryStoredEnergy
-		outputNode.setCurrentSupply = min(calculatedBatteryStoredEnergy,outputNode.setCurrentSupply)
+		outputNode.setCurrentSupply = max(0,min(calculatedBatteryStoredEnergy,outputNode.setCurrentSupply))
 		outputNode.update()
 
-
+*/
 
 	if(parentNetwork !=null && isOn ==POWER_STATE_ON)
 		//Calculate diffs
 
 		var/calculatedLoadDiff = 0
 
-		if(isOn == 1)
-			//Grid
-			calculatedLoadDiff =(setCurrentLoad + setBatteryChargeRate) - oldCalculatedLoadOnParentNetwork
-		else
-			calculatedLoadDiff = 0 - oldCalculatedLoadOnParentNetwork
+		calculatedLoadDiff =(setCurrentLoad + setBatteryChargeRate) - oldCalculatedLoadOnParentNetwork
 
-		oldCalculatedLoadOnParentNetwork+=calculatedLoadDiff
+		oldCalculatedLoadOnParentNetwork=setCurrentLoad + setBatteryChargeRate
 
 
 
@@ -239,15 +238,16 @@ APC Code
 
 
 
+	//	world << "update:#[gridId], calculatedLoadDiff=[calculatedLoadDiff], calculatedSupplyDiff=[calculatedSupplyDiff],calculatedPotentialSupplyDiff=[calculatedPotentialSupplyDiff]"
 
 
-
-
+	//	world<< "before: wireNetworkLoad=[parentNetwork.wireNetworkLoad], wireNetworkCurrentSupply=[parentNetwork.wireNetworkCurrentSupply],wireNetworkMaxPotentialSupply=[parentNetwork.wireNetworkMaxPotentialSupply]"
 		//update parent
 		parentNetwork.wireNetworkLoad+=calculatedLoadDiff
 		parentNetwork.wireNetworkCurrentSupply += calculatedSupplyDiff
 		parentNetwork.wireNetworkMaxPotentialSupply+=calculatedPotentialSupplyDiff
 
+	//	world<< "after: wireNetworkLoad=[parentNetwork.wireNetworkLoad], wireNetworkCurrentSupply=[parentNetwork.wireNetworkCurrentSupply],wireNetworkMaxPotentialSupply=[parentNetwork.wireNetworkMaxPotentialSupply]"
 
 
 
@@ -294,13 +294,12 @@ APC Code
 
 /datum/power/PowerNode/proc/privatePrcessBattery()
 	//world << "PowerNode #[gridId] -> privatePrcessBattery()"
-	if(isOn == 0 && outputNode !=null && outputNode.isOn==0)
-	//	world << "PowerNode <- privatePrcessBattery(1)"
+	if(isOn == 0 && ((outputNode !=null && outputNode.isOn==0) || calculatedBatteryStoredEnergy <= 0))
+		//world << "PowerNode <- privatePrcessBattery(1)"
 		return
 
 
 	var/chargeDiff = 0
-
 
 
 
@@ -310,10 +309,10 @@ APC Code
 		chargeDiff = setBatteryChargeRate-calculatedCurrentBatteryDistargeRate - setCurrentLoad
 
 	if(isOn == POWER_STATE_OFF && (outputNode!=null && outputNode.isOn == POWER_STATE_ON))
-	//	world << "privatePrcessBattery #[gridId] POWER_STATE_BATTERY"
+		//world << "privatePrcessBattery #[gridId] POWER_STATE_BATTERY"
 		chargeDiff = -calculatedCurrentBatteryDistargeRate - setCurrentLoad
 
-//	world << "privatePrcessBattery #[gridId] isOn=[isOn], setBatteryChargeRate=[setBatteryChargeRate], calculatedCurrentBatteryDistargeRate=[calculatedCurrentBatteryDistargeRate], setCurrentLoad=[setCurrentLoad],chargeDiff=[chargeDiff]"
+	//world << "privatePrcessBattery #[gridId] isOn=[isOn], setBatteryChargeRate=[setBatteryChargeRate], calculatedCurrentBatteryDistargeRate=[calculatedCurrentBatteryDistargeRate], setCurrentLoad=[setCurrentLoad],chargeDiff=[chargeDiff]"
 
 	if(calculatedBatteryStoredEnergy + chargeDiff > setBatteryMaxCapacity)
 		calculatedBatteryStoredEnergy=setBatteryMaxCapacity
@@ -323,18 +322,24 @@ APC Code
 	else
 		calculatedBatteryStoredEnergy+=chargeDiff
 
-	if(	calculatedBatteryStoredEnergy<0)
-		//Out of power, notify child network
-		calculatedBatteryStoredEnergy=0
-
-		privateForceBrownOut()
-
-	update()
 
 
 
+	if(outputNode!=null)
+		if(	calculatedBatteryStoredEnergy>=0)
+			outputNode.setMaxPotentialSupply = calculatedBatteryStoredEnergy
+			outputNode.setCurrentSupply = min(calculatedBatteryStoredEnergy,outputNode.setCurrentSupply)
+			outputNode.update()
+		else
+			//Brownout logic
+			outputNode.setMaxPotentialSupply = 0
+			outputNode.setCurrentSupply=0
+			outputNode.update()
+			outputNode.privateForceBrownOut()
 
-//	world << "PowerNode #[gridId] <- privatePrcessBattery(2)"
+
+
+	//world << "PowerNode #[gridId] <- privatePrcessBattery(2)"
 
 
 /datum/power/PowerNode/proc/boolean_privateSwitchToBattery()
@@ -345,14 +350,16 @@ APC Code
 	else
 		if(setCanAutoStartToIdle==1)
 			parentNetwork.autoRestartListOn-=src
-			parentNetwork.autoRestartListOff+=src
+			LIST_ADDLAST(parentNetwork.processQueue,src)
 
 	return 0
 
 /datum/power/PowerNode/proc/privateForceBrownOut()
 	if(isOn == 1)
+		//world << "[setName] is turning off : ([isOn])"
 		if(boolean_privateSwitchToBattery()==1)
 			return
+
 
 		if(parentNetwork!=null)
 			//remove supply and load from parent
@@ -360,8 +367,18 @@ APC Code
 			parentNetwork.wireNetworkMaxPotentialSupply-= setMaxPotentialSupply
 			parentNetwork.wireNetworkCurrentSupply-=setCurrentSupply
 
+			setCurrentLoad=0
+			setMaxPotentialSupply=0
+			setCurrentSupply=0
+			update()
+			isOn=0;
+			parentNetwork.privateBrownOut(src)
+
+		if(outputNode!=null)
+			outputNode.privateForceBrownOut()
 				//TODO review if i need to remove current load from grid if on grid
-		isOn=0;
+
+
 
 
 		if(objListener!=null)
@@ -369,6 +386,7 @@ APC Code
 			#if defined(POWER_BACKWORDS_COMPATIBLITY)
 			//setCallBackEvents.power_change()
 			#endif
+		//world << "[setName] is turning off : ([isOn])"
 
 
 
@@ -378,8 +396,10 @@ APC Code
 	if(isOn == 1)
 		return
 
+	//world << "[setName] is turning on"
 
 
+/*
 	if(isOn == POWER_STATE_BATTERY && parentNetwork!=null && parentNetwork.boolean_reserveAditionalPower(setCurrentLoad)==1)
 		parentNetwork.wireNetworkLoad+=setCurrentLoad
 		parentNetwork.wireNetworkMaxPotentialSupply+= setMaxPotentialSupply
@@ -391,16 +411,10 @@ APC Code
 
 
 
+*/
 
 
-
-	//world << "[setName] PowerNode -> privateRequestPowerOn(), hasbattery=[setHasBattery]"
-
-
-	if(setHasBattery == 1)
-	//TODO: This should only happen once but will be called each time. add in a check to see if it has been already added
-		powerNetworkControllerPowerNodeOnBatteryProcessingLoopList|=src
-		//world << "[setName] privateRequestPowerOn() -> Adding battery"
+//	world << "[setName] PowerNode -> privateRequestPowerOn(), hasbattery=[setHasBattery] ([parentNetwork.wireNetworkMaxPotentialSupply]-[parentNetwork.wireNetworkLoad ]>=[setIdleLoad]"
 
 
 
@@ -430,6 +444,10 @@ APC Code
 
 
 	update()
+
+//	world << "[setName] is turning on : ([isOn])"
+
+
 	//world << "[setName] is now [isOn]"
 
 
@@ -445,6 +463,8 @@ APC Code
 
 
 				powerNode.setCurrentSupply+=diffAmount
+
+				//world << "diff amount = [diffAmount]"
 				powerNode.update()
 				return diffAmount
 
