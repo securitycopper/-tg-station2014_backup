@@ -4,6 +4,7 @@
 	var/obj/item/r_store = null
 	var/obj/item/l_store = null
 	var/caste = ""
+	var/leap_on_click = 0
 	update_icon = 1
 
 //This is fine right now, if we're adding organ specific damage this needs to be updated
@@ -116,12 +117,12 @@
 		if ("help")
 			help_shake_act(M)
 		else
-			if (is_muzzled())
+			if (M.is_muzzled())
 				return
-			if (health > 0)
-				playsound(loc, 'sound/weapons/bite.ogg', 50, 1, -1)
-				visible_message("<span class='danger'>[M.name] bites [src]!</span>", \
-						"<span class='userdanger'>[M.name] bites [src]!</span>")
+			playsound(loc, 'sound/weapons/bite.ogg', 50, 1, -1)
+			visible_message("<span class='danger'>[M.name] bites [src]!</span>", \
+					"<span class='userdanger'>[M.name] bites [src]!</span>")
+			if (health > -100)
 				adjustBruteLoss(rand(1, 3))
 				updatehealth()
 	return
@@ -134,7 +135,7 @@
 
 	if(M.Victim) return // can't attack while eating!
 
-	if (health > -100)
+	if (stat > -100)
 
 		visible_message("<span class='danger'>The [M.name] glomps [src]!</span>", \
 				"<span class='userdanger'>The [M.name] glomps [src]!</span>")
@@ -309,6 +310,28 @@ In all, this is a lot like the monkey code. /N
 	return
 
 
+/mob/living/carbon/alien/humanoid/attack_larva(mob/living/carbon/alien/larva/L as mob)
+
+	switch(L.a_intent)
+		if("help")
+			visible_message("<span class='notice'>[L] rubs its head against [src].</span>")
+
+
+		else
+			if (health > 0)
+				playsound(loc, 'sound/weapons/bite.ogg', 50, 1, -1)
+				var/damage = rand(1, 3)
+				visible_message("<span class='danger'>[L.name] bites [src]!!</span>", \
+						"<span class='userdanger'>[L.name] bites [src]!!</span>")
+
+				adjustBruteLoss(damage)
+				updatehealth()
+			else
+				L << "<span class='warning'>[name] is too injured for that.</span>"
+	return
+
+
+
 /mob/living/carbon/alien/humanoid/restrained()
 	if (handcuffed)
 		return 1
@@ -349,6 +372,6 @@ In all, this is a lot like the monkey code. /N
 		if(href_list["pouches"])
 			visible_message("<span class='danger'>[usr] tries to empty [src]'s pouches.</span>", \
 							"<span class='userdanger'>[usr] tries to empty [src]'s pouches.</span>")
-			if(do_mob(usr, src, STRIP_DELAY * 0.5))
+			if(do_mob(usr, src, POCKET_STRIP_DELAY * 0.5))
 				unEquip(r_store)
 				unEquip(l_store)

@@ -13,9 +13,7 @@ Thus, the two variables affect pump operation are set in New():
 */
 
 /obj/machinery/atmospherics/binary/pump
-	icon = 'icons/obj/atmospherics/pump.dmi'
-	icon_state = "intact_off"
-
+	icon_state = "pump_map"
 	name = "gas pump"
 	desc = "A pump"
 
@@ -30,21 +28,13 @@ Thus, the two variables affect pump operation are set in New():
 
 /obj/machinery/atmospherics/binary/pump/on
 	on = 1
-	icon_state = "intact_on"
 
-/obj/machinery/atmospherics/binary/pump/update_icon()
+/obj/machinery/atmospherics/binary/pump/update_icon_nopipes()
 	if(stat & NOPOWER)
-		icon_state = "intact_off"
-	else if(node1 && node2)
-		icon_state = "intact_[on?("on"):("off")]"
-	else
-		if(node1)
-			icon_state = "exposed_1_off"
-		else if(node2)
-			icon_state = "exposed_2_off"
-		else
-			icon_state = "exposed_3_off"
-	return
+		icon_state = "pump_off"
+		return
+
+	icon_state = "pump_[on?"on":"off"]"
 
 /obj/machinery/atmospherics/binary/pump/process()
 //	..()
@@ -151,7 +141,7 @@ Thus, the two variables affect pump operation are set in New():
 		return
 	src.add_fingerprint(usr)
 	if(!src.allowed(user))
-		user << "\red Access denied."
+		user << "<span class='danger'>Access denied.</span>"
 		return
 	usr.set_machine(src)
 	interact(user)
@@ -177,7 +167,7 @@ Thus, the two variables affect pump operation are set in New():
 	if (!istype(W, /obj/item/weapon/wrench))
 		return ..()
 	if (!(stat & NOPOWER) && on)
-		user << "\red You cannot unwrench this [src], turn it off first."
+		user << "<span class='danger'>You cannot unwrench this [src], turn it off first.</span>"
 		return 1
 	return ..()
 

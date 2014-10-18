@@ -59,7 +59,7 @@ var/list/blob_nodes = list()
 
 
 /datum/game_mode/blob/proc/greet_blob(var/datum/mind/blob)
-	blob.current << "<B>\red You are infected by the Blob!</B>"
+	blob.current << "<span class='userdanger'>You are infected by the Blob!</span>"
 	blob.current << "<b>Your body is ready to give spawn to a new blob core which will eat this station.</b>"
 	blob.current << "<b>Find a good location to spawn the core and then take control and overwhelm the station!</b>"
 	blob.current << "<b>When you have found a location, wait until you spawn; this will happen automatically and you cannot speed up the process.</b>"
@@ -110,10 +110,6 @@ var/list/blob_nodes = list()
 	else
 		ERROR("Events variable is null in blob gamemode post setup.")
 
-	spawn(10)
-		start_state = new /datum/station_state()
-		start_state.count()
-
 	spawn(0)
 
 		var/wait_time = rand(waittime_l, waittime_h)
@@ -135,11 +131,11 @@ var/list/blob_nodes = list()
 		burst_blobs()
 
 		// Stage 0
-		sleep(40)
+		sleep(wait_time)
 		stage(0)
 
 		// Stage 1
-		sleep(2000)
+		sleep(wait_time)
 		stage(1)
 
 		// Stage 2

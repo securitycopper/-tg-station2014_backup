@@ -131,7 +131,7 @@ var/list/forbidden_varedit_object_types = list(
 
 	if(!istype(L,/list)) src << "Not a List."
 
-	var/list/locked = list("vars", "client", "virus", "viruses", "cuffed", "last_eaten", "unlock_content")
+	var/list/locked = list("vars", "client", "virus", "viruses", "cuffed", "last_eaten", "unlock_content", "step_x", "step_y")
 	var/list/ckey_edit = list("key", "ckey")
 	var/list/icon_edit = list("icon", "icon_state", "overlays", "underlays")
 	var/list/names = sortList(L)
@@ -281,11 +281,11 @@ var/list/forbidden_varedit_object_types = list(
 
 	for(var/p in forbidden_varedit_object_types)
 		if( istype(O,p) )
-			usr << "\red It is forbidden to edit this object's variables."
+			usr << "<span class='danger'>It is forbidden to edit this object's variables.</span>"
 			return
 
 	if(istype(O, /client) && (param_var_name == "ckey" || param_var_name == "key"))
-		usr << "\red You cannot edit ckeys on client objects."
+		usr << "<span class='danger'>You cannot edit ckeys on client objects.</span>"
 		return
 
 	var/class
@@ -518,5 +518,5 @@ var/list/forbidden_varedit_object_types = list(
 
 	world.log << "### VarEdit by [src]: [O.type] [variable]=[html_encode("[O.vars[variable]]")]"
 	log_admin("[key_name(src)] modified [original_name]'s [variable] to [O.vars[variable]]")
-	message_admins("[key_name_admin(src)] modified [original_name]'s [variable] to [O.vars[variable]]", 1)
+	message_admins("[key_name_admin(src)] modified [original_name]'s [variable] to [O.vars[variable]]")
 

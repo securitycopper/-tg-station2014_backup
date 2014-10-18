@@ -107,19 +107,16 @@
 	return
 
 
-/obj/item/weapon/reagent_containers/food/snacks/examine()
-	set src in view()
+/obj/item/weapon/reagent_containers/food/snacks/examine(mob/user)
 	..()
-	if(!(usr in range(1)) && usr != loc)
-		return
 	if(bitecount == 0)
 		return
 	else if(bitecount == 1)
-		usr << "[src] was bitten by someone!"
+		user << "[src] was bitten by someone!"
 	else if(bitecount <= 3)
-		usr << "[src] was bitten [bitecount] times!"
+		user << "[src] was bitten [bitecount] times!"
 	else
-		usr << "[src] was bitten multiple times!"
+		user << "[src] was bitten multiple times!"
 
 
 /obj/item/weapon/reagent_containers/food/snacks/attackby(obj/item/weapon/W, mob/user)
@@ -185,12 +182,12 @@
 	if(isanimal(M))
 		if(iscorgi(M))
 			if(bitecount == 0 || prob(50))
-				M.emote("nibbles away at the [src]")
+				M.emote("me", 1, "nibbles away at the [src]")
 			bitecount++
 			if(bitecount >= 5)
 				var/sattisfaction_text = pick("burps from enjoyment", "yaps for more", "woofs twice", "looks at the area where the [src] was")
 				if(sattisfaction_text)
-					M.emote("[sattisfaction_text]")
+					M.emote("me", 1, "[sattisfaction_text]")
 				qdel(src)
 
 
@@ -882,7 +879,7 @@
 
 /obj/item/weapon/reagent_containers/food/snacks/popcorn/On_Consume()
 	if(prob(unpopped))	//lol ...what's the point? << AINT SO POINTLESS NO MORE
-		usr << "\red You bite down on an un-popped kernel, and it hurts your teeth!"
+		usr << "<span class='danger'>You bite down on an un-popped kernel, and it hurts your teeth!</span>"
 		unpopped = max(0, unpopped-1)
 		reagents.add_reagent("sacid",0.1) //only a little tingle.
 	..()

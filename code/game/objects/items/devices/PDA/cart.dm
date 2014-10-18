@@ -307,7 +307,7 @@ Code:
 
 
 			if(!powercount)
-				menu += "\red No connection<BR>"
+				menu += "<span class='danger'>No connection<BR></span>"
 			else
 
 				menu += "<FONT SIZE=-1>"
@@ -321,7 +321,7 @@ Code:
 		if (433)
 			menu = "<h4><img src=pda_power.png> Power Monitor </h4><BR>"
 			if(!powmonitor)
-				menu += "\red No connection<BR>"
+				menu += "<span class='danger'>No connection<BR></span>"
 			else
 			//	var/list/L = list()
 				//TODO Folix: this logic
@@ -472,6 +472,9 @@ Code:
 
 				else
 					for(var/obj/machinery/bot/secbot/B in SC.botlist)
+						menu += "<A href='byond://?src=\ref[SC];op=control;bot=\ref[B]'>[B] at [B.loc.loc]</A><BR>"
+
+					for(var/obj/machinery/bot/ed209/B in SC.botlist)
 						menu += "<A href='byond://?src=\ref[SC];op=control;bot=\ref[B]'>[B] at [B.loc.loc]</A><BR>"
 
 				menu += "<BR><A href='byond://?src=\ref[SC];op=scanbots'><img src=pda_scanner.png> Scan for active bots</A><BR>"

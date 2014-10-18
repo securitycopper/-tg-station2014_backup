@@ -176,11 +176,19 @@
 		img_eyes_s.color = "#" + H.eye_color
 		standing	+= img_eyes_s
 
-	//Underwear
+	//Underwear & Undershirts
 	if(H.underwear)
-		var/datum/sprite_accessory/underwear/U = underwear_all[H.underwear]
+		var/datum/sprite_accessory/underwear/U = underwear_list[H.underwear]
 		if(U)
 			standing	+= image("icon"=U.icon, "icon_state"="[U.icon_state]_s", "layer"=-BODY_LAYER)
+
+	if(H.undershirt)
+		var/datum/sprite_accessory/undershirt/U2 = undershirt_list[H.undershirt]
+		if(U2)
+			if(H.dna && H.dna.species.sexes && H.gender == FEMALE)
+				standing	+=	H.wear_female_version(U2.icon_state, U2.icon, BODY_LAYER)
+			else
+				standing	+= image("icon"=U2.icon, "icon_state"="[U2.icon_state]_s", "layer"=-BODY_LAYER)
 
 	if(standing.len)
 		H.overlays_standing[BODY_LAYER] = standing
@@ -337,13 +345,13 @@
 		if(slot_handcuffed)
 			if(H.handcuffed)
 				return 0
-			if(!istype(I, /obj/item/weapon/handcuffs))
+			if(!istype(I, /obj/item/weapon/restraints/handcuffs))
 				return 0
 			return 1
 		if(slot_legcuffed)
 			if(H.legcuffed)
 				return 0
-			if(!istype(I, /obj/item/weapon/legcuffs))
+			if(!istype(I, /obj/item/weapon/restraints/legcuffs))
 				return 0
 			return 1
 		if(slot_in_backpack)
@@ -442,27 +450,6 @@
 			H.hud_used.lingchemdisplay.maptext = "<div align='center' valign='middle' style='position:relative; top:0px; left:6px'> <font color='#dd66dd'>[H.mind.changeling.chem_charges]</font></div>"
 		else
 			H.hud_used.lingchemdisplay.invisibility = 101
-
-		if(istype(H.wear_mask, /obj/item/clothing/mask/gas/voice/space_ninja))
-			var/obj/item/clothing/mask/gas/voice/space_ninja/O = H.wear_mask
-			switch(O.mode)
-				if(0)
-					var/target_list[] = list()
-					for(var/mob/living/target in oview(H))
-						if( target.mind&&(target.mind.special_role||issilicon(target)) )//They need to have a mind.
-							target_list += target
-					if(target_list.len)//Everything else is handled by the ninja mask proc.
-						O.assess_targets(target_list, H)
-					H.see_invisible = SEE_INVISIBLE_LIVING
-				if(1)
-					H.see_in_dark = 5
-					H.see_invisible = SEE_INVISIBLE_LIVING
-				if(2)
-					H.sight |= SEE_MOBS
-					H.see_invisible = SEE_INVISIBLE_LEVEL_TWO
-				if(3)
-					H.sight |= SEE_TURFS
-					H.see_invisible = SEE_INVISIBLE_LIVING
 
 		if(H.glasses)
 			if(istype(H.glasses, /obj/item/clothing/glasses))
@@ -874,6 +861,7 @@
 					H.apply_effect(20, PARALYZE, armor)
 					if(H != user && I.damtype == BRUTE)
 						ticker.mode.remove_revolutionary(H.mind)
+						ticker.mode.remove_gangster(H.mind)
 
 				if(bloody)	//Apply blood
 					if(H.wear_mask)
@@ -1285,7 +1273,7 @@
 		return
 	var/datum/gas_mixture/G = H.loc.return_air() // Check if we're standing in an oxygenless environment
 	if(G.oxygen < 1)
-		ExtinguishMob() //If there's no oxygen in the tile we're on, put out the fire
+		ExtinguishMob(H) //If there's no oxygen in the tile we're on, put out the fire
 		return
 	var/turf/location = get_turf(H)
 	location.hotspot_expose(700, 50, 1)

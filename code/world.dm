@@ -55,7 +55,6 @@
 	timezoneOffset = text2num(time2text(0,"hh")) * 36000
 
 
-
 	sun = new /datum/sun()
 	radio_controller = new /datum/controller/radio()
 	data_core = new /obj/effect/datacore()
@@ -78,6 +77,15 @@
 	slmaster.icon_state = "sleeping_agent"
 	slmaster.layer = FLY_LAYER
 	slmaster.mouse_opacity = 0
+
+	setup_map_transitions()
+
+	for(var/i=0, i<max_secret_rooms, i++)
+		make_mining_asteroid_secret()
+
+	createRandomZlevel()
+
+	makepowernets()
 
 	master_controller = new /datum/controller/game_controller()
 	spawn(-1)
@@ -204,7 +212,7 @@
 				if(C.is_afk(INACTIVITY_KICK))
 					if(!istype(C.mob, /mob/dead))
 						log_access("AFK: [key_name(C)]")
-						C << "\red You have been inactive for more than 10 minutes and have been disconnected."
+						C << "<span class='danger'>You have been inactive for more than 10 minutes and have been disconnected.</span>"
 						del(C)
 #undef INACTIVITY_KICK
 

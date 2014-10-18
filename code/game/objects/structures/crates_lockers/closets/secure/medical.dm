@@ -121,7 +121,7 @@
 	new /obj/item/device/radio/headset/heads/cmo(src)
 	new /obj/item/weapon/storage/belt/medical(src)
 	new /obj/item/device/flash(src)
-	new /obj/item/weapon/reagent_containers/hypospray(src)
+	new /obj/item/weapon/reagent_containers/hypospray/CMO(src)
 	return
 
 
@@ -135,9 +135,9 @@
 	..()
 	sleep(2)
 	new /obj/item/device/assembly/signaler(src)
-	new /obj/item/device/radio/electropack(src)
-	new /obj/item/device/radio/electropack(src)
-	new /obj/item/device/radio/electropack(src)
+	new /obj/item/device/electropack(src)
+	new /obj/item/device/electropack(src)
+	new /obj/item/device/electropack(src)
 	return
 
 

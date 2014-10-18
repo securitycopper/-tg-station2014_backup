@@ -17,11 +17,11 @@
 	if(!active)
 		active = 1
 		workdisk()
-		usr << "\blue You activate the pinpointer"
+		usr << "<span class='notice'>You activate the pinpointer.</span>"
 	else
 		active = 0
 		icon_state = "pinoff"
-		usr << "\blue You deactivate the pinpointer"
+		usr << "<span class='notice'>You deactivate the pinpointer.</span>"
 
 /obj/item/weapon/pinpointer/proc/point_at(atom/target)
 	if(!active)
@@ -54,12 +54,11 @@
 		the_disk = locate()
 	point_at(the_disk)
 
-/obj/item/weapon/pinpointer/examine()
+/obj/item/weapon/pinpointer/examine(mob/user)
 	..()
 	for(var/obj/machinery/nuclearbomb/bomb in world)
 		if(bomb.timing)
-			usr << "Extreme danger.  Arming signal detected.   Time remaining: [bomb.timeleft]"
-
+			user << "Extreme danger.  Arming signal detected.   Time remaining: [bomb.timeleft]"
 
 /obj/item/weapon/pinpointer/advpinpointer
 	name = "advanced pinpointer"
@@ -78,11 +77,11 @@
 			point_at(location)
 		if(mode == 2)
 			point_at(target)
-		usr << "\blue You activate the pinpointer"
+		usr << "<span class='notice'>You activate the pinpointer.,/span>"
 	else
 		active = 0
 		icon_state = "pinoff"
-		usr << "\blue You deactivate the pinpointer"
+		usr << "<span class='notice'>You deactivate the pinpointer.</span>"
 
 
 /obj/item/weapon/pinpointer/advpinpointer/verb/toggle_mode()

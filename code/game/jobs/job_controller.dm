@@ -72,6 +72,11 @@ var/global/datum/controller/occupations/job_master
 		if(flag && (!player.client.prefs.be_special & flag))
 			Debug("FOC flag failed, Player: [player], Flag: [flag], ")
 			continue
+
+		if(config.enforce_human_authority && (job.title in command_positions) && player.client.prefs.pref_species.id != "human")
+			Debug("FOC non-human failed, Player: [player]")
+			continue
+
 		if(player.client.prefs.GetJobDepartment(job, level) & job.flag)
 			Debug("FOC pass, Player: [player], Level:[level]")
 			candidates += player
@@ -96,6 +101,11 @@ var/global/datum/controller/occupations/job_master
 		if(!job.player_old_enough(player.client))
 			Debug("GRJ player not old enough, Player: [player]")
 			continue
+
+		if(config.enforce_human_authority && (job.title in command_positions) && player.client.prefs.pref_species.id != "human")
+			Debug("GRJ non-human failed, Player: [player]")
+			continue
+
 
 		if((job.current_positions < job.spawn_positions) || job.spawn_positions == -1)
 			Debug("GRJ Random job given, Player: [player], Job: [job]")
@@ -248,6 +258,11 @@ var/global/datum/controller/occupations/job_master
 					Debug("DO player not old enough, Player: [player], Job:[job.title]")
 					continue
 
+				if(config.enforce_human_authority && (job.title in command_positions) && player.client.prefs.pref_species.id != "human")
+					Debug("DO non-human failed, Player: [player], Job:[job.title]")
+					continue
+
+
 				// If the player wants that job on this level, then try give it to him.
 				if(player.client.prefs.GetJobDepartment(job, level) & job.flag)
 
@@ -276,6 +291,7 @@ var/global/datum/controller/occupations/job_master
 
 //Gives the player the stuff he should have with his rank
 /datum/controller/occupations/proc/EquipRank(var/mob/living/H, var/rank, var/joined_late = 0)
+
 	var/datum/job/job = GetJob(rank)
 
 	H.job = rank

@@ -23,14 +23,6 @@
 	return
 
 
-/obj/item/weapon/tank/oxygen/examine()
-	set src in usr
-	..()
-	if(air_contents.oxygen < 10)
-		usr << text("\red <B>The meter on the [src.name] indicates you are almost out of air!</B>")
-		playsound(usr, 'sound/effects/alert.ogg', 50, 1)
-
-
 /obj/item/weapon/tank/oxygen/yellow
 	desc = "A tank of oxygen, this one is yellow."
 	icon_state = "oxygen_f"
@@ -68,13 +60,6 @@
 	desc = "Mixed anyone?"
 	icon_state = "oxygen"
 
-
-/obj/item/weapon/tank/air/examine()
-	set src in usr
-	..()
-	if(air_contents.oxygen < 1 && loc==usr)
-		usr << "\red <B>The meter on the [src.name] indicates you are almost out of air!</B>"
-		usr << sound('sound/effects/alert.ogg')
 
 /obj/item/weapon/tank/air/New()
 	..()
@@ -137,14 +122,6 @@
 	..()
 	src.air_contents.oxygen = (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)
 	return
-
-
-/obj/item/weapon/tank/emergency_oxygen/examine()
-	set src in usr
-	..()
-	if(air_contents.oxygen < 0.2 && loc==usr)
-		usr << text("\red <B>The meter on the [src.name] indicates you are almost out of air!</B>")
-		usr << sound('sound/effects/alert.ogg')
 
 /obj/item/weapon/tank/emergency_oxygen/engi
 	name = "extended-capacity emergency oxygen tank"

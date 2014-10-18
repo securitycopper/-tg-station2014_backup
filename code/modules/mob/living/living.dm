@@ -17,7 +17,7 @@
 		src.adjustOxyLoss(src.health + 200)
 		src.health = 100 - src.getOxyLoss() - src.getToxLoss() - src.getFireLoss() - src.getBruteLoss()
 		if(!whispered)
-			src << "\blue You have given up life and succumbed to death."
+			src << "<span class='notice'>You have given up life and succumbed to death.</span>"
 		death()
 
 /mob/living/proc/InCritical()
@@ -330,11 +330,10 @@
 				t7 = null
 	if ((t7 && (pulling && ((get_dist(src, pulling) <= 1 || pulling.loc == loc) && (client && client.moving)))))
 		var/turf/T = loc
-		var/turf/P = pulling.loc
 		. = ..()
 
 		if (pulling && pulling.loc)
-			if(!isturf(pulling.loc) || pulling.loc != P)
+			if(!isturf(pulling.loc))
 				stop_pulling()
 				return
 			else
@@ -361,8 +360,7 @@
 							var/obj/item/weapon/grab/G = pick(M.grabbed_by)
 							if (istype(G, /obj/item/weapon/grab))
 								for(var/mob/O in viewers(M, null))
-									O.show_message(text("\red [] has been pulled from []'s grip by []", G.affecting, G.assailant, src), 1)
-								//G = null
+									O.show_message(text("<span class='danger'>[] has been pulled from []'s grip by []</span>", G.affecting, G.assailant, src), 1)
 								qdel(G)
 						else
 							ok = 0
@@ -397,17 +395,12 @@
 										if(check_dna_integrity(M)) //blood DNA
 											var/mob/living/carbon/DNA_helper = pulling
 											H.blood_DNA[DNA_helper.dna.unique_enzymes] = DNA_helper.dna.blood_type
-						step(pulling, get_dir(pulling.loc, T))
+						pulling.Move(T)
 						if(M)
 							M.start_pulling(t)
 				else
 					if (pulling)
-						if (istype(pulling, /obj/structure/window))
-							if(pulling:ini_dir == NORTHWEST || pulling:ini_dir == NORTHEAST || pulling:ini_dir == SOUTHWEST || pulling:ini_dir == SOUTHEAST)
-								for(var/obj/structure/window/win in get_step(pulling,get_dir(pulling.loc, T)))
-									stop_pulling()
-					if (pulling)
-						step(pulling, get_dir(pulling.loc, T))
+						pulling.Move(T)
 	else
 		stop_pulling()
 		. = ..()
@@ -421,7 +414,7 @@
 /mob/living/proc/getTrail() //silicon and simple_animals don't get blood trails
     return null
 
-/mob/living/proc/cuff_break(obj/item/I, mob/living/carbon/C)
+/mob/living/proc/cuff_break(obj/item/weapon/restraints/I, mob/living/carbon/C)
 
 	if(HULK in usr.mutations)
 		C.say(pick(";RAAAAAAAARGH!", ";HNNNNNNNNNGGGGGGH!", ";GWAAAAAAAARRRHHH!", "NNNNNNNNGGGGGGGGHH!", ";AAAAAAARRRGH!" ))
@@ -438,14 +431,14 @@
 		C.update_inv_legcuffed(0)
 
 
-/mob/living/proc/cuff_resist(obj/item/I, mob/living/carbon/C)
+/mob/living/proc/cuff_resist(obj/item/weapon/restraints/I, mob/living/carbon/C)
 	var/breakouttime = 600
 	var/displaytime = 1
-	if(istype(I, /obj/item/weapon/handcuffs))
-		var/obj/item/weapon/handcuffs/HC = C.handcuffed
+	if(istype(I, /obj/item/weapon/restraints/handcuffs))
+		var/obj/item/weapon/restraints/handcuffs/HC = C.handcuffed
 		breakouttime = HC.breakouttime
-	else if(istype(I, /obj/item/weapon/legcuffs))
-		var/obj/item/weapon/legcuffs/LC = C.legcuffed
+	else if(istype(I, /obj/item/weapon/restraints/legcuffs))
+		var/obj/item/weapon/restraints/legcuffs/LC = C.legcuffed
 		breakouttime = LC.breakouttime
 	displaytime = breakouttime / 600
 
@@ -483,7 +476,7 @@
 
 	if(!isliving(usr) || usr.next_move > world.time)
 		return
-	usr.changeNext_move(20)
+	usr.changeNext_move(CLICK_CD_RESIST)
 
 	var/mob/living/L = usr
 
@@ -516,8 +509,8 @@
 		if(iscarbon(L))
 			var/mob/living/carbon/C = L
 			if(C.handcuffed)
-				C.changeNext_move(100)
-				C.last_special = world.time + 100
+				C.changeNext_move(CLICK_CD_BREAKOUT)
+				C.last_special = world.time + CLICK_CD_BREAKOUT
 				C.visible_message("<span class='warning'>[usr] attempts to unbuckle themself!</span>", \
 							"<span class='notice'>You attempt to unbuckle yourself. (This will take around one minute and you need to stay still.)</span>")
 				spawn(0)
@@ -555,8 +548,8 @@
 			return
 		if(CM.canmove && (CM.last_special <= world.time))
 			if(CM.handcuffed || CM.legcuffed)
-				CM.changeNext_move(100)
-				CM.last_special = world.time + 100
+				CM.changeNext_move(CLICK_CD_BREAKOUT)
+				CM.last_special = world.time + CLICK_CD_BREAKOUT
 				if(CM.handcuffed)
 					cuff_resist(CM.handcuffed, CM)
 				else
@@ -618,7 +611,7 @@
 	who.visible_message("<span class='danger'>[src] tries to remove [who]'s [what.name].</span>", \
 					"<span class='userdanger'>[src] tries to remove [who]'s [what.name].</span>")
 	what.add_fingerprint(src)
-	if(do_mob(src, who, STRIP_DELAY))
+	if(do_mob(src, who, what.strip_delay))
 		if(what && Adjacent(who))
 			who.unEquip(what)
 			add_logs(src, who, "stripped", addition="of [what]")
@@ -632,7 +625,7 @@
 		return
 	if(what && what.mob_can_equip(who, where, 1))
 		visible_message("<span class='notice'>[src] tries to put [what] on [who].</span>")
-		if(do_mob(src, who, STRIP_DELAY * 0.5))
+		if(do_mob(src, who, what.put_on_delay))
 			if(what && Adjacent(who))
 				src.unEquip(what)
 				who.equip_to_slot_if_possible(what, where, 0, 1)

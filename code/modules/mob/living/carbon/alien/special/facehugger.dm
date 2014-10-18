@@ -17,11 +17,12 @@ var/const/MAX_ACTIVE_TIME = 400
 	w_class = 1 //note: can be picked up by aliens unlike most other items of w_class below 4
 	flags = MASKCOVERSMOUTH | MASKCOVERSEYES | MASKINTERNALS
 	throw_range = 5
+	tint = 3
 
 	var/stat = CONSCIOUS //UNCONSCIOUS is the idle state in this case
 
 	var/sterile = 0
-
+	var/real = 1 //0 for the toy, 1 for real. Sure I could istype, but fuck that.
 	var/strength = 5
 
 	var/attached = 0
@@ -43,16 +44,17 @@ var/const/MAX_ACTIVE_TIME = 400
 	user.unEquip(src)
 	Attach(M)
 
-/obj/item/clothing/mask/facehugger/examine()
+/obj/item/clothing/mask/facehugger/examine(mob/user)
 	..()
+	if(!real)//So that giant red text about probisci doesn't show up.
+		return
 	switch(stat)
 		if(DEAD,UNCONSCIOUS)
-			usr << "<span class='userdanger'>[src] is not moving.</span>"
+			user << "<span class='userdanger'>[src] is not moving.</span>"
 		if(CONSCIOUS)
-			usr << "<span class='userdanger'>[src] seems to be active.</span>"
+			user << "<span class='userdanger'>[src] seems to be active!</span>"
 	if (sterile)
-		usr << "<span class='userdanger'>It looks like the proboscis has been removed.</span>"
-	return
+		user << "<span class='userdanger'>It looks like the proboscis has been removed.</span>"
 
 /obj/item/clothing/mask/facehugger/attackby(var/obj/item/O,var/mob/m)
 	if(O.force)
@@ -115,6 +117,7 @@ var/const/MAX_ACTIVE_TIME = 400
 
 	if(loc == L) return 0
 	if(stat != CONSCIOUS)	return 0
+	if(locate(/obj/item/alien_embryo) in L) return 0
 	if(!sterile) L.take_organ_damage(strength,0) //done here so that even borgs and humans in helmets take damage
 
 	L.visible_message("<span class='userdanger'>[src] leaps at [L]'s face!</span>")
@@ -128,7 +131,6 @@ var/const/MAX_ACTIVE_TIME = 400
 
 	if(iscarbon(M))
 		var/mob/living/carbon/target = L
-
 		if(target.wear_mask)
 			if(prob(20))	return 0
 			var/obj/item/clothing/W = target.wear_mask

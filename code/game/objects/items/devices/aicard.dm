@@ -1,5 +1,6 @@
 /obj/item/device/aicard
 	name = "inteliCard"
+	desc = "A storage device for AIs. Patent pending."
 	icon = 'icons/obj/aicards.dmi'
 	icon_state = "aicard" // aicard-full
 	item_state = "electronic"
@@ -17,13 +18,6 @@
 
 	transfer_ai("AICORE", "AICARD", M, user)
 	return
-
-/obj/item/device/aicard/attack(mob/living/silicon/decoy/M as mob, mob/user as mob)
-	if (!istype (M, /mob/living/silicon/decoy))
-		return ..()
-	else
-		M.death()
-		user << "<b>ERROR ERROR ERROR</b>"
 
 /obj/item/device/aicard/attack_self(mob/user)
 	if (!in_range(src, user))

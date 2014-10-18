@@ -133,14 +133,15 @@ By design, d1 is the smallest direction and d2 is the highest
 		if (shock(user, 50))
 			return
 
+		var/obj/newcable
 		if(src.d1)	// 0-X cables are 1 unit, X-X cables are 2 units long
-			new/obj/item/stack/cable_coil(T, 2, cable_color)
+			newcable = new/obj/item/stack/cable_coil(T, 2, cable_color)
 		else
-			new/obj/item/stack/cable_coil(T, 1, cable_color)
+			newcable = new/obj/item/stack/cable_coil(T, 1, cable_color)
 
-		for(var/mob/O in viewers(src, null))
-			O.show_message("<span class='danger'>[user] cuts the cable.</span>", 1)
+		visible_message("<span class='warning'>[user] cuts the cable.</span>")
 
+		newcable.add_fingerprint(user)
 		investigate_log("was cut by [key_name(usr, usr.client)] in [user.loc.loc]","wires")
 
 		qdel(src)
@@ -480,6 +481,7 @@ obj/structure/cable/proc/cableColor(var/colorC)
 
 /obj/item/stack/cable_coil
 	name = "cable coil"
+	gender = NEUTER //That's a cable coil sounds better than that's some cable coils
 	icon = 'icons/obj/power.dmi'
 	icon_state = "coil_red"
 	item_state = "coil_red"
@@ -495,6 +497,7 @@ obj/structure/cable/proc/cableColor(var/colorC)
 	flags = CONDUCT
 	slot_flags = SLOT_BELT
 	attack_verb = list("whipped", "lashed", "disciplined", "flogged")
+	singular_name = "cable piece"
 
 /obj/item/stack/cable_coil/cyborg
 	is_cyborg = 1
@@ -550,20 +553,6 @@ obj/structure/cable/proc/cableColor(var/colorC)
 		name = "cable coil"
 
 
-/obj/item/stack/cable_coil/examine()
-	set src in view(1)
-
-	if (is_cyborg)
-		usr << "A cable synthesizer. Currently has energy for [get_amount()] lengths of cable."
-	else
-		if(get_amount() == 1)
-			usr << "A short piece of power cable."
-		else if(get_amount() == 2)
-			usr << "A piece of power cable."
-		else
-			usr << "A coil of power cable. There are [get_amount()] lengths of cable in the coil."
-
-
 /obj/item/stack/cable_coil/verb/make_restraint()
 	set name = "Make Cable Restraints"
 	set category = "Object"
@@ -574,7 +563,7 @@ obj/structure/cable/proc/cableColor(var/colorC)
 		if(src.amount <= 14)
 			usr << "<span class='danger'>You need at least 15 lengths to make restraints!</span>"
 			return
-		var/obj/item/weapon/handcuffs/cable/B = new /obj/item/weapon/handcuffs/cable(usr.loc)
+		var/obj/item/weapon/restraints/handcuffs/cable/B = new /obj/item/weapon/restraints/handcuffs/cable(usr.loc)
 		B.icon_state = "cuff_[item_color]"
 		usr << "<span class='notice'>You wind some cable together to make some restraints.</span>"
 		src.use(15)

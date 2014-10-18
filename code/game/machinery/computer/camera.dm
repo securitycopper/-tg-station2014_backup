@@ -31,14 +31,13 @@
 	if((istype(user,/mob/living/silicon/robot)) && (!(viewing.Find(user))))
 		return null
 	user.reset_view(current)
-	attack_hand(user)
 	return 1
 
 
 /obj/machinery/computer/security/attack_hand(var/mob/user as mob)
 	if(!stat)
 		if (src.z > 6)
-			user << "\red <b>Unable to establish a connection</b>: \black You're too far away from the station!"
+			user << "<span class='userdanger'>Unable to establish a connection</span>: \black You're too far away from the station!"
 			return
 
 		if (!network)
@@ -61,10 +60,10 @@
 		D["Cancel"] = "Cancel"
 		for(var/obj/machinery/camera/C in L)
 			if(!C.network)
-				world.log << "[C.c_tag] has no camera network."
+				ERROR("[C.c_tag] has no camera network.")
 				continue
 			if(!(istype(C.network,/list)))
-				world.log << "[C.c_tag]'s camera network is not a list!"
+				ERROR("[C.c_tag]'s camera network is not a list!")
 				continue
 			var/list/tempnetwork = C.network&network
 			if(tempnetwork.len)

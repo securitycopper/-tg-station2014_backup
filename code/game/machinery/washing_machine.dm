@@ -1,5 +1,6 @@
 /obj/machinery/washing_machine
 	name = "washing machine"
+	desc = "Gets rid of those pesky bloodstains, or your money back!"
 	icon = 'icons/obj/machines/washing_machine.dmi'
 	icon_state = "wm_10"
 	density = 1
@@ -130,6 +131,7 @@
 					J.item_color = wash_color
 					J.name = new_jumpsuit_name
 					J.desc = new_desc
+					J.suit_color = wash_color
 			if(new_glove_icon_state && new_glove_item_state && new_glove_name)
 				for(var/obj/item/clothing/gloves/G in contents)
 					//world << "DEBUG: YUP! FOUND IT!"
@@ -144,7 +146,7 @@
 					if (S.chained == 1)
 						S.chained = 0
 						S.slowdown = SHOES_SLOWDOWN
-						new /obj/item/weapon/handcuffs( src )
+						new /obj/item/weapon/restraints/handcuffs( src )
 					S.icon_state = new_shoe_icon_state
 					S.item_color = wash_color
 					S.name = new_shoe_name
@@ -266,9 +268,9 @@
 				W.loc = src
 				state = 3
 			else
-				user << "\blue You can't put the item in right now."
+				user << "<span class='notice'>You can't put the item in right now.</span>"
 		else
-			user << "\blue The washing machine is full."
+			user << "<span class='notice'>The washing machine is full.</span>"
 	else
 		..()
 	update_icon()
@@ -290,7 +292,7 @@
 			crayon = null
 			state = 1
 		if(5)
-			user << "\red The [src] is busy."
+			user << "<span class='danger'>The [src] is busy.</span>"
 		if(6)
 			state = 7
 		if(7)
